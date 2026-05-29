@@ -1,14 +1,11 @@
-﻿package com.ilyesabidi.secureapi;
+package com.ilyesabidi.secureapi;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class DemoApplicationTests {
+class SecureApiApplicationTests {
 
 	@Test
 	void contextLoads() {
+		// Integration tests will be added with Testcontainers
 	}
-
 }
-
