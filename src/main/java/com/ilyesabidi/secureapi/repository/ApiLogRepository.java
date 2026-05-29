@@ -1,4 +1,4 @@
-﻿package com.ilyesabidi.secureapi.repository;
+package com.ilyesabidi.secureapi.repository;
 
 import com.ilyesabidi.secureapi.entity.ApiLog;
 import org.springframework.data.jpa.repository.JpaRepository;

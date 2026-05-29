@@ -1,4 +1,4 @@
-﻿package com.ilyesabidi.secureapi.config;
+package com.ilyesabidi.secureapi.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;

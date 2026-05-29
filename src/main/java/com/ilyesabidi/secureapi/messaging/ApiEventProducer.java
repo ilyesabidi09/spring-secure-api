@@ -1,4 +1,4 @@
-﻿package com.ilyesabidi.secureapi.messaging;
+package com.ilyesabidi.secureapi.messaging;
 
 import com.ilyesabidi.secureapi.event.ApiCallEvent;
 import lombok.RequiredArgsConstructor;

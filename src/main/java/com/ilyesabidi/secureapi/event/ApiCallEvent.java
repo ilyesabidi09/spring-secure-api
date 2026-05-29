@@ -1,4 +1,4 @@
-﻿package com.ilyesabidi.secureapi.event;
+package com.ilyesabidi.secureapi.event;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

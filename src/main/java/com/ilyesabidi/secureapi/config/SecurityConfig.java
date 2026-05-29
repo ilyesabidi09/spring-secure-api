@@ -1,4 +1,4 @@
-﻿package com.ilyesabidi.secureapi.config;
+package com.ilyesabidi.secureapi.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -1,4 +1,4 @@
-﻿package com.ilyesabidi.secureapi.filter;
+package com.ilyesabidi.secureapi.filter;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;

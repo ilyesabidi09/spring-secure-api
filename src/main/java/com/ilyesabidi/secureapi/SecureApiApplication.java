@@ -1,4 +1,4 @@
-﻿package com.ilyesabidi.secureapi;
+package com.ilyesabidi.secureapi;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

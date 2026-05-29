@@ -11,7 +11,7 @@ env:
 
 jobs:
 
-  # ─── CI : Build & Test ────────────────────────────────────
+  # â”€â”€â”€ CI : Build & Test â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   build:
     name: Build & Test
     runs-on: ubuntu-latest
@@ -40,7 +40,7 @@ jobs:
           name: app-jar
           path: target/*.jar
 
-  # ─── Docker : Build & Push ────────────────────────────────
+  # â”€â”€â”€ Docker : Build & Push â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   docker:
     name: Docker Build & Push
     runs-on: ubuntu-latest

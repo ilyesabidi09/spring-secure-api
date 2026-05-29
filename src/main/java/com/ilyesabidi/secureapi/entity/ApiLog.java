@@ -1,4 +1,4 @@
-﻿package com.ilyesabidi.secureapi.entity;
+package com.ilyesabidi.secureapi.entity;
 
 import jakarta.persistence.*;
 import lombok.Builder;

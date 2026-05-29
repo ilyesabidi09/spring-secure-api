@@ -1,4 +1,4 @@
-﻿package com.ilyesabidi.secureapi.filter;
+package com.ilyesabidi.secureapi.filter;
 
 import com.ilyesabidi.secureapi.entity.ApiLog;
 import com.ilyesabidi.secureapi.event.ApiCallEvent;
