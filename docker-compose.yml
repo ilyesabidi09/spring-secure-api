@@ -1,0 +1,19 @@
+services:
+
+  demo-app:
+    build: .
+    container_name: demo-app
+    ports:
+      - "8080:8080"
+    environment:
+      JWK_SET_URI: http://keycloak:9090/realms/ilyes-realm/protocol/openid-connect/certs
+      SPRING_DATASOURCE_URL: jdbc:postgresql://app-db:5432/demo
+      SPRING_DATASOURCE_USERNAME: demo
+      SPRING_DATASOURCE_PASSWORD: demo
+      ACTIVEMQ_BROKER_URL: tcp://activemq:61616
+    networks:
+      - infra-network
+
+networks:
+  infra-network:
+    external: true
