@@ -1,9 +1,10 @@
 package com.ilyesabidi.secureapi.messaging;
 
 import com.ilyesabidi.secureapi.event.ApiCallEvent;
+import io.awspring.cloud.sqs.operations.SqsTemplate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jms.core.JmsTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -11,20 +12,21 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ApiEventProducer {
 
-    private static final String QUEUE_API_LOGS    = "queue.api.logs";
-    private static final String QUEUE_SECURITY    = "queue.security.alerts";
+    @Value("${sqs.queue.api-logs:queue-api-logs-local}")
+    private String queueApiLogs;
 
-    private final JmsTemplate jmsTemplate;
+    @Value("${sqs.queue.security-alerts:queue-security-alerts-local}")
+    private String queueSecurityAlerts;
+
+    private final SqsTemplate sqsTemplate;
 
     public void sendApiCallEvent(ApiCallEvent event) {
-        jmsTemplate.convertAndSend(QUEUE_API_LOGS, event);
-        log.debug("Event sent to {} : {} {}", QUEUE_API_LOGS, event.getMethod(), event.getEndpoint());
+        sqsTemplate.send(queueApiLogs, event);
+        log.debug("Event sent to {} : {} {}", queueApiLogs, event.getMethod(), event.getEndpoint());
 
-        // Si 403 â†’ publier aussi sur la queue sÃ©curitÃ©
         if (event.getHttpStatus() == 403) {
-            jmsTemplate.convertAndSend(QUEUE_SECURITY, event);
+            sqsTemplate.send(queueSecurityAlerts, event);
             log.warn("Security alert sent : {} tried to access {}", event.getCaller(), event.getEndpoint());
         }
     }
 }
-

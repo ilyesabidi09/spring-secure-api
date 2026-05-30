@@ -1,15 +1,15 @@
 package com.ilyesabidi.secureapi.messaging;
 
 import com.ilyesabidi.secureapi.event.ApiCallEvent;
+import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
 public class ApiEventConsumer {
 
-    @JmsListener(destination = "queue.api.logs")
+    @SqsListener("${sqs.queue.api-logs:queue-api-logs-local}")
     public void onApiCall(ApiCallEvent event) {
         log.info("[API LOG] {} {} {} - {}ms - status {}",
                 event.getCaller(),
@@ -19,7 +19,7 @@ public class ApiEventConsumer {
                 event.getHttpStatus());
     }
 
-    @JmsListener(destination = "queue.security.alerts")
+    @SqsListener("${sqs.queue.security-alerts:queue-security-alerts-local}")
     public void onSecurityAlert(ApiCallEvent event) {
         log.warn("[SECURITY ALERT] User '{}' was denied access to '{}' at {}",
                 event.getCaller(),
@@ -27,4 +27,3 @@ public class ApiEventConsumer {
                 event.getCalledAt());
     }
 }
-
