@@ -2,6 +2,11 @@ spring:
   application:
     name: spring-secure-api
 
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jms.JmsAutoConfiguration
+      - org.springframework.boot.autoconfigure.jms.activemq.ActiveMQAutoConfiguration
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/demo}
     username: ${SPRING_DATASOURCE_USERNAME:demo}
@@ -16,17 +21,17 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-  activemq:
-    broker-url: ${ACTIVEMQ_BROKER_URL:tcp://localhost:61616}
-    user: admin
-    password: admin
-
-  jms:
-    pub-sub-domain: false
-
   security:
     oauth2:
       resourceserver:
         jwt:
           jwk-set-uri: ${JWK_SET_URI:http://localhost:9090/realms/ilyes-realm/protocol/openid-connect/certs}
 
+aws:
+  region: ${AWS_REGION:eu-west-1}
+
+sqs:
+  endpoint: ${SQS_ENDPOINT:http://localhost:4566}
+  queue:
+    api-logs: ${SQS_QUEUE_API_LOGS:queue-api-logs-local}
+    security-alerts: ${SQS_QUEUE_SECURITY_ALERTS:queue-security-alerts-local}
