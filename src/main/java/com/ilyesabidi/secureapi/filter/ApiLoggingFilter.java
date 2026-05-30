@@ -29,10 +29,17 @@ public class ApiLoggingFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
+        // Exclure les requêtes /error (dispatches internes Tomcat pour les sendError)
+        if ("/error".equals(request.getRequestURI())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        LoggingResponseWrapper wrappedResponse = new LoggingResponseWrapper(response);
         long start = System.currentTimeMillis();
 
         try {
-            filterChain.doFilter(request, response);
+            filterChain.doFilter(request, wrappedResponse);
         } finally {
             long duration = System.currentTimeMillis() - start;
             LocalDateTime now = LocalDateTime.now();
@@ -42,12 +49,14 @@ public class ApiLoggingFilter extends OncePerRequestFilter {
                     && !"anonymousUser".equals(auth.getName()))
                     ? auth.getName() : "anonymous";
 
+            int status = wrappedResponse.getStatus();
+
             apiLogRepository.save(ApiLog.builder()
                     .caller(caller)
                     .method(request.getMethod())
                     .endpoint(request.getRequestURI())
                     .queryParams(request.getQueryString())
-                    .httpStatus(response.getStatus())
+                    .httpStatus(status)
                     .durationMs(duration)
                     .calledAt(now)
                     .build());
@@ -56,7 +65,7 @@ public class ApiLoggingFilter extends OncePerRequestFilter {
                     .caller(caller)
                     .method(request.getMethod())
                     .endpoint(request.getRequestURI())
-                    .httpStatus(response.getStatus())
+                    .httpStatus(status)
                     .durationMs(duration)
                     .calledAt(now)
                     .build());
