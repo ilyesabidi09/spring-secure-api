@@ -7,3 +7,5 @@ venv/
 .venv/
 # Donnees de marche telechargees (ne pas redistribuer - regenerer via download_dukascopy.py)
 data/*.csv
+# Logs de telechargement
+data/_dl_*.log
