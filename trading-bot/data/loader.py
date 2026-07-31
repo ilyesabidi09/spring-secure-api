@@ -24,6 +24,36 @@ def load_csv(path: str | Path) -> list[Bar]:
     return bars
 
 
+def resample_bars(bars: list[Bar], minutes: int) -> list[Bar]:
+    """Reagrege des barres 1-min en barres de `minutes` (5, 15, ...). Les intervalles
+    divisant l'heure ne franchissent jamais une frontiere d'heure -> agregation exacte.
+    Volume = somme. Horodatage = debut du bucket (meme fuseau que l'entree)."""
+    if not bars:
+        return []
+    step = minutes * 60
+    out: list[Bar] = []
+    cur_key = None
+    o = h = l = c = 0.0
+    vol = 0.0
+    t0 = None
+    for b in bars:
+        key = int(b.time.timestamp()) // step
+        if key != cur_key:
+            if cur_key is not None:
+                out.append(Bar(t0, o, h, l, c, vol))
+            cur_key = key
+            t0 = b.time.replace(minute=(b.time.minute // minutes) * minutes,
+                                second=0, microsecond=0)
+            o, h, l, c, vol = b.open, b.high, b.low, b.close, 0.0
+        h = max(h, b.high)
+        l = min(l, b.low)
+        c = b.close
+        vol += b.volume
+    if cur_key is not None:
+        out.append(Bar(t0, o, h, l, c, vol))
+    return out
+
+
 def synthetic_bars(n: int = 2000, start_price: float = 5300.0,
                    seed: int = 42, days: int = 5) -> list[Bar]:
     """Barres 1-minute synthetiques (marche aleatoire + cycles) pour tester le

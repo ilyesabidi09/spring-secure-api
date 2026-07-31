@@ -8,6 +8,19 @@ from risk.manager import RiskConfig, RiskManager
 from datetime import time
 
 
+def test_resample_bars_agrege_correctement():
+    from datetime import datetime
+    from data.loader import resample_bars
+    from strategy.base import Bar
+    bars = [Bar(datetime(2026, 1, 5, 9, 30 + i), 100 + i, 101 + i, 99 + i, 100 + i, 10)
+            for i in range(10)]  # 10 barres 1-min
+    r5 = resample_bars(bars, 5)
+    assert len(r5) == 2
+    assert r5[0].open == 100 and r5[0].close == 104   # 09:30..09:34
+    assert r5[0].high == 105 and r5[0].low == 99 and r5[0].volume == 50
+    assert r5[0].time.minute == 30 and r5[1].time.minute == 35
+
+
 def test_gex_bloque_long_sous_call_wall():
     sig = Signal(Action.LONG, 12, 18, confidence=0.6)
     levels = {"call_walls": [5300.0], "put_walls": []}
