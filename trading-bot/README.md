@@ -37,6 +37,18 @@ cp .env.example .env      # renseigne tes identifiants Tradovate (DEMO d'abord)
 | `webhook/` | serveur FastAPI pour alertes TradingView |
 | `tests/` | tests déterministes (risk + strategy) |
 
+## Données de marché réelles (Dukascopy, gratuit)
+`data/download_dukascopy.py` télécharge des **ticks réels** S&P 500 (`USA500IDXUSD`) ou Nasdaq 100
+(`USATECHIDXUSD`) et les agrège en barres OHLCV CSV (horodatées en US/Eastern, alignées RTH).
+```bash
+python -m data.download_dukascopy --instrument USA500IDXUSD \
+    --start 2026-01-01 --end 2026-06-01 --interval 5min --out data/sp500_5m.csv
+```
+> ⚠️ C'est le **CFD indice** de Dukascopy (proxy du S&P), pas le contrat CME MES : prix quasi
+> identiques (bon pour tester le *signal*), mais le volume n'est pas le volume CME. Les CSV ne sont
+> pas commités (voir `.gitignore`) — régénère-les. Pour utiliser TES propres données MES, mets un
+> CSV `time,open,high,low,close,volume` dans `data/`.
+
 ## Utilisation
 ```bash
 # Tests
@@ -46,7 +58,7 @@ pytest -q
 python run_backtest.py
 
 # Backtest sur données réelles (CSV: time,open,high,low,close,volume)
-python run_backtest.py --csv mes_1min.csv
+python run_backtest.py --csv data/sp500_5m.csv
 
 # Optimisation walk-forward → best_params.json
 python run_backtest.py --walkforward

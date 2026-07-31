@@ -5,3 +5,5 @@ best_params.json
 .pytest_cache/
 venv/
 .venv/
+# Donnees de marche telechargees (ne pas redistribuer - regenerer via download_dukascopy.py)
+data/*.csv
