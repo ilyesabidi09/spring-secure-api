@@ -61,6 +61,14 @@ def build_strategy(name: str, cfg: dict, tick_size: float):
         return VwapReversionStrategy(VwapReversionParams(
             atr_period=v["atr_period"], dev_mult=v["dev_mult"],
             atr_stop_mult=v["atr_stop_mult"], rr_ratio=v["rr_ratio"], tick_size=tick_size))
+    if name == "meta":
+        from meta.regime import RegimeMetaStrategy, RegimeParams
+        m = cfg["meta"]
+        return RegimeMetaStrategy(
+            RegimeParams(ema_fast=m["ema_fast"], ema_slow=m["ema_slow"],
+                         atr_period=m["atr_period"], trend_threshold=m["trend_threshold"]),
+            trend_strategy=build_strategy("scalper", cfg, tick_size),
+            range_strategy=build_strategy("vwap", cfg, tick_size))
     raise ValueError(f"strategie inconnue: {name}")
 
 

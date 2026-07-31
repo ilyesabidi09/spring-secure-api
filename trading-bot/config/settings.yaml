@@ -60,6 +60,12 @@ vwap:
   atr_stop_mult: 1.0
   rr_ratio: 1.5
 
+meta:                     # selecteur de regime : route scalper (tendance) / vwap (range)
+  ema_fast: 20
+  ema_slow: 50
+  atr_period: 14
+  trend_threshold: 1.0    # |ema_fast-ema_slow|/atr au-dessus = momentum, sinon reversion
+
 gex:
   enabled: true
   levels_file: data/gex_levels.json   # niveaux fournis par ton abonnement GEX

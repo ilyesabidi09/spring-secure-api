@@ -44,6 +44,12 @@ def _search_space(name: str, trial) -> dict:
         return dict(dev_mult=trial.suggest_float("dev_mult", 1.0, 4.0),
                     atr_stop_mult=trial.suggest_float("atr_stop_mult", 0.5, 3.0),
                     rr_ratio=trial.suggest_float("rr_ratio", 1.0, 3.0))
+    if name == "meta":
+        # Espace volontairement reduit (4 params) pour limiter l'overfitting du routeur.
+        return dict(trend_threshold=trial.suggest_float("trend_threshold", 0.15, 0.6),
+                    atr_stop_mult=trial.suggest_float("atr_stop_mult", 0.5, 3.0),
+                    rr_ratio=trial.suggest_float("rr_ratio", 1.0, 3.0),
+                    dev_mult=trial.suggest_float("dev_mult", 1.0, 4.0))
     raise ValueError(name)
 
 
@@ -72,6 +78,18 @@ def _make_strategy(name: str, cfg: dict, tick_size: float, overrides: dict):
         return VwapReversionStrategy(VwapReversionParams(
             atr_period=v["atr_period"], dev_mult=v["dev_mult"],
             atr_stop_mult=v["atr_stop_mult"], rr_ratio=v["rr_ratio"], tick_size=tick_size))
+    if name == "meta":
+        from meta.regime import RegimeMetaStrategy, RegimeParams
+        m = cfg["meta"]
+        # Repartit les overrides vers les sous-strategies + le routeur.
+        scalper_ov = {k: overrides[k] for k in ("atr_stop_mult", "rr_ratio") if k in overrides}
+        vwap_ov = {k: overrides[k] for k in ("atr_stop_mult", "dev_mult") if k in overrides}
+        return RegimeMetaStrategy(
+            RegimeParams(ema_fast=m["ema_fast"], ema_slow=m["ema_slow"],
+                         atr_period=m["atr_period"],
+                         trend_threshold=overrides.get("trend_threshold", m["trend_threshold"])),
+            trend_strategy=_make_strategy("scalper", cfg, tick_size, scalper_ov),
+            range_strategy=_make_strategy("vwap", cfg, tick_size, vwap_ov))
     raise ValueError(name)
 
 
