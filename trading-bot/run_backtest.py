@@ -69,6 +69,33 @@ def build_strategy(name: str, cfg: dict, tick_size: float):
                          atr_period=m["atr_period"], trend_threshold=m["trend_threshold"]),
             trend_strategy=build_strategy("scalper", cfg, tick_size),
             range_strategy=build_strategy("vwap", cfg, tick_size))
+    if name == "rsi2":
+        from strategy.rsi2 import RSI2Params, RSI2Strategy
+        r = cfg["rsi2"]
+        return RSI2Strategy(RSI2Params(
+            rsi_period=r["rsi_period"], oversold=r["oversold"], overbought=r["overbought"],
+            trend_period=r["trend_period"], atr_period=r["atr_period"],
+            atr_stop_mult=r["atr_stop_mult"], rr_ratio=r["rr_ratio"], tick_size=tick_size))
+    if name == "bollinger":
+        from strategy.bollinger import BollingerParams, BollingerStrategy
+        b = cfg["bollinger"]
+        return BollingerStrategy(BollingerParams(
+            bb_period=b["bb_period"], bb_k=b["bb_k"], adx_period=b["adx_period"],
+            adx_max=b["adx_max"], atr_period=b["atr_period"], atr_stop_mult=b["atr_stop_mult"],
+            rr_ratio=b["rr_ratio"], tick_size=tick_size))
+    if name == "donchian":
+        from strategy.donchian import DonchianParams, DonchianStrategy
+        dn = cfg["donchian"]
+        return DonchianStrategy(DonchianParams(
+            channel_period=dn["channel_period"], adx_period=dn["adx_period"],
+            adx_min=dn["adx_min"], atr_period=dn["atr_period"],
+            atr_stop_mult=dn["atr_stop_mult"], rr_ratio=dn["rr_ratio"], tick_size=tick_size))
+    if name == "fvg":
+        from strategy.fvg import FVGParams, FVGStrategy
+        fv = cfg["fvg"]
+        return FVGStrategy(FVGParams(
+            atr_period=fv["atr_period"], atr_stop_mult=fv["atr_stop_mult"],
+            rr_ratio=fv["rr_ratio"], max_age=fv["max_age"], tick_size=tick_size))
     raise ValueError(f"strategie inconnue: {name}")
 
 

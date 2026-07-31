@@ -50,6 +50,26 @@ def _search_space(name: str, trial) -> dict:
                     atr_stop_mult=trial.suggest_float("atr_stop_mult", 0.5, 3.0),
                     rr_ratio=trial.suggest_float("rr_ratio", 1.0, 3.0),
                     dev_mult=trial.suggest_float("dev_mult", 1.0, 4.0))
+    if name == "rsi2":
+        return dict(oversold=trial.suggest_float("oversold", 2.0, 20.0),
+                    overbought=trial.suggest_float("overbought", 80.0, 98.0),
+                    trend_period=trial.suggest_int("trend_period", 50, 300),
+                    atr_stop_mult=trial.suggest_float("atr_stop_mult", 0.8, 3.0),
+                    rr_ratio=trial.suggest_float("rr_ratio", 1.0, 3.0))
+    if name == "bollinger":
+        return dict(bb_k=trial.suggest_float("bb_k", 1.5, 3.0),
+                    adx_max=trial.suggest_float("adx_max", 15.0, 35.0),
+                    atr_stop_mult=trial.suggest_float("atr_stop_mult", 0.5, 2.5),
+                    rr_ratio=trial.suggest_float("rr_ratio", 1.0, 3.0))
+    if name == "donchian":
+        return dict(channel_period=trial.suggest_int("channel_period", 10, 60),
+                    adx_min=trial.suggest_float("adx_min", 15.0, 35.0),
+                    atr_stop_mult=trial.suggest_float("atr_stop_mult", 0.8, 3.0),
+                    rr_ratio=trial.suggest_float("rr_ratio", 1.5, 4.0))
+    if name == "fvg":
+        return dict(atr_stop_mult=trial.suggest_float("atr_stop_mult", 0.5, 2.5),
+                    rr_ratio=trial.suggest_float("rr_ratio", 1.5, 4.0),
+                    max_age=trial.suggest_int("max_age", 30, 240))
     raise ValueError(name)
 
 
@@ -90,6 +110,33 @@ def _make_strategy(name: str, cfg: dict, tick_size: float, overrides: dict):
                          trend_threshold=overrides.get("trend_threshold", m["trend_threshold"])),
             trend_strategy=_make_strategy("scalper", cfg, tick_size, scalper_ov),
             range_strategy=_make_strategy("vwap", cfg, tick_size, vwap_ov))
+    if name == "rsi2":
+        from strategy.rsi2 import RSI2Params, RSI2Strategy
+        r = {**cfg["rsi2"], **overrides}
+        return RSI2Strategy(RSI2Params(
+            rsi_period=r["rsi_period"], oversold=r["oversold"], overbought=r["overbought"],
+            trend_period=r["trend_period"], atr_period=r["atr_period"],
+            atr_stop_mult=r["atr_stop_mult"], rr_ratio=r["rr_ratio"], tick_size=tick_size))
+    if name == "bollinger":
+        from strategy.bollinger import BollingerParams, BollingerStrategy
+        b = {**cfg["bollinger"], **overrides}
+        return BollingerStrategy(BollingerParams(
+            bb_period=b["bb_period"], bb_k=b["bb_k"], adx_period=b["adx_period"],
+            adx_max=b["adx_max"], atr_period=b["atr_period"], atr_stop_mult=b["atr_stop_mult"],
+            rr_ratio=b["rr_ratio"], tick_size=tick_size))
+    if name == "donchian":
+        from strategy.donchian import DonchianParams, DonchianStrategy
+        dn = {**cfg["donchian"], **overrides}
+        return DonchianStrategy(DonchianParams(
+            channel_period=dn["channel_period"], adx_period=dn["adx_period"],
+            adx_min=dn["adx_min"], atr_period=dn["atr_period"],
+            atr_stop_mult=dn["atr_stop_mult"], rr_ratio=dn["rr_ratio"], tick_size=tick_size))
+    if name == "fvg":
+        from strategy.fvg import FVGParams, FVGStrategy
+        fv = {**cfg["fvg"], **overrides}
+        return FVGStrategy(FVGParams(
+            atr_period=fv["atr_period"], atr_stop_mult=fv["atr_stop_mult"],
+            rr_ratio=fv["rr_ratio"], max_age=fv["max_age"], tick_size=tick_size))
     raise ValueError(name)
 
 

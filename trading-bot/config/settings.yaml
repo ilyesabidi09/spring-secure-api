@@ -66,6 +66,38 @@ meta:                     # selecteur de regime : route scalper (tendance) / vwa
   atr_period: 14
   trend_threshold: 1.0    # |ema_fast-ema_slow|/atr au-dessus = momentum, sinon reversion
 
+rsi2:                     # mean-reversion Connors : creux/pics filtres par tendance
+  rsi_period: 2
+  oversold: 10
+  overbought: 90
+  trend_period: 200
+  atr_period: 14
+  atr_stop_mult: 1.5
+  rr_ratio: 1.5
+
+bollinger:                # fade des bandes en range (ADX faible)
+  bb_period: 20
+  bb_k: 2.0
+  adx_period: 14
+  adx_max: 25
+  atr_period: 14
+  atr_stop_mult: 1.0
+  rr_ratio: 1.5
+
+donchian:                 # cassure de canal (breakout), filtre ADX
+  channel_period: 20
+  adx_period: 14
+  adx_min: 20
+  atr_period: 14
+  atr_stop_mult: 1.5
+  rr_ratio: 2.0
+
+fvg:                      # retest de Fair Value Gap (ICT / BPR)
+  atr_period: 14
+  atr_stop_mult: 1.0
+  rr_ratio: 2.0
+  max_age: 120
+
 gex:
   enabled: true
   levels_file: data/gex_levels.json   # niveaux fournis par ton abonnement GEX

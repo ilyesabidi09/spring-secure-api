@@ -1,6 +1,7 @@
 """Indicateurs techniques minimalistes (sans dependance externe lourde)."""
 from __future__ import annotations
 
+import statistics
 from collections import deque
 
 
@@ -17,6 +18,116 @@ class EMA:
         else:
             self.value = price * self.k + self.value * (1 - self.k)
         return self.value
+
+
+class SMA:
+    """Moyenne mobile simple sur fenetre glissante (None tant que non remplie)."""
+
+    def __init__(self, period: int):
+        self.period = period
+        self.buf: deque[float] = deque(maxlen=period)
+        self._sum = 0.0
+
+    def update(self, price: float) -> float | None:
+        if len(self.buf) == self.period:
+            self._sum -= self.buf[0]
+        self.buf.append(price)
+        self._sum += price
+        return self._sum / self.period if len(self.buf) == self.period else None
+
+
+class Bollinger:
+    """Bandes de Bollinger : (bas, milieu, haut) = SMA +/- k*ecart-type."""
+
+    def __init__(self, period: int, k: float = 2.0):
+        self.period = period
+        self.k = k
+        self.buf: deque[float] = deque(maxlen=period)
+
+    def update(self, price: float):
+        self.buf.append(price)
+        if len(self.buf) < self.period:
+            return None
+        mid = statistics.fmean(self.buf)
+        sd = statistics.pstdev(self.buf)
+        return (mid - self.k * sd, mid, mid + self.k * sd)
+
+
+class Donchian:
+    """Canal de Donchian : plus haut/plus bas des N barres PRECEDENTES (exclut la
+    barre courante) -> sert a detecter une cassure de range."""
+
+    def __init__(self, period: int):
+        self.period = period
+        self.highs: deque[float] = deque(maxlen=period)
+        self.lows: deque[float] = deque(maxlen=period)
+
+    def channel(self):
+        if len(self.highs) < self.period:
+            return None
+        return (min(self.lows), max(self.highs))
+
+    def update(self, high: float, low: float) -> None:
+        self.highs.append(high)
+        self.lows.append(low)
+
+
+class ADX:
+    """Average Directional Index (Wilder) : force de tendance (0-100).
+    ADX faible = range (bon pour mean-reversion), ADX eleve = tendance."""
+
+    def __init__(self, period: int):
+        self.period = period
+        self.prev_high = None
+        self.prev_low = None
+        self.prev_close = None
+        self._tr = 0.0
+        self._plus = 0.0
+        self._minus = 0.0
+        self._count = 0
+        self._adx: float | None = None
+        self._dx_acc = 0.0
+        self._dx_n = 0
+
+    def update(self, high: float, low: float, close: float) -> float | None:
+        if self.prev_close is None:
+            self.prev_high, self.prev_low, self.prev_close = high, low, close
+            return None
+        up = high - self.prev_high
+        dn = self.prev_low - low
+        plus_dm = up if (up > dn and up > 0) else 0.0
+        minus_dm = dn if (dn > up and dn > 0) else 0.0
+        tr = max(high - low, abs(high - self.prev_close), abs(low - self.prev_close))
+        self.prev_high, self.prev_low, self.prev_close = high, low, close
+
+        p = self.period
+        self._count += 1
+        if self._count <= p:
+            self._tr += tr
+            self._plus += plus_dm
+            self._minus += minus_dm
+            if self._count < p:
+                return None
+        else:
+            self._tr = self._tr - self._tr / p + tr
+            self._plus = self._plus - self._plus / p + plus_dm
+            self._minus = self._minus - self._minus / p + minus_dm
+
+        if self._tr == 0:
+            return self._adx
+        di_plus = 100 * self._plus / self._tr
+        di_minus = 100 * self._minus / self._tr
+        denom = di_plus + di_minus
+        dx = 100 * abs(di_plus - di_minus) / denom if denom else 0.0
+        # ADX = moyenne de Wilder des DX
+        if self._adx is None:
+            self._dx_acc += dx
+            self._dx_n += 1
+            if self._dx_n == p:
+                self._adx = self._dx_acc / p
+        else:
+            self._adx = (self._adx * (p - 1) + dx) / p
+        return self._adx
 
 
 class RSI:
