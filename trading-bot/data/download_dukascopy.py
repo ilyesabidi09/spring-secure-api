@@ -103,31 +103,59 @@ def _bar_time(key: int, rule_seconds: int) -> str:
     return dt_utc.astimezone(EASTERN).replace(tzinfo=None).isoformat()
 
 
+def _last_utc_hour_in_csv(out: Path) -> datetime | None:
+    """Derniere heure UTC deja ecrite (pour reprendre un telechargement interrompu).
+    Les timestamps du CSV sont en US/Eastern -> on reconvertit en UTC."""
+    if not out.exists() or out.stat().st_size == 0:
+        return None
+    last = None
+    with open(out, newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            last = row["time"]
+    if not last:
+        return None
+    et = datetime.fromisoformat(last).replace(tzinfo=EASTERN)
+    return et.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+
+
 def download(instrument: str, start: datetime, end: datetime, rule_seconds: int,
-             out_path: str | Path) -> int:
+             out_path: str | Path, resume: bool = True) -> int:
+    """Streaming per-heure (memoire constante) : chaque heure est telechargee,
+    resamplee et ecrite immediatement. Les intervalles qui divisent l'heure
+    (1,5,15,30,60 min) ne franchissent jamais une frontiere d'heure -> exact.
+    `resume` saute les heures deja presentes dans le CSV existant."""
+    if 3600 % rule_seconds != 0:
+        raise ValueError("interval doit diviser 3600s (1,5,15,30,60 min) "
+                         "pour le mode streaming")
     scale = POINT_SCALE.get(instrument, 1000.0)
-    all_ticks: list[tuple[datetime, float]] = []
+    out = Path(out_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    resume_from = _last_utc_hour_in_csv(out) if resume else None
+    new_file = resume_from is None
+    total_bars = 0
     hours = int((end - start).total_seconds() // 3600)
-    with httpx.Client() as client:
+
+    mode = "w" if new_file else "a"
+    with open(out, mode, newline="", encoding="utf-8") as fh, httpx.Client() as client:
+        w = csv.DictWriter(fh, fieldnames=["time", "open", "high", "low", "close", "volume"])
+        if new_file:
+            w.writeheader()
         for i in range(hours):
             hour = (start + timedelta(hours=i)).replace(
                 minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+            if resume_from is not None and hour <= resume_from:
+                continue
             ticks = fetch_hour_ticks(client, instrument, hour, scale)
-            all_ticks.extend(ticks)
+            if ticks:
+                for b in resample_ohlcv(ticks, rule_seconds):
+                    w.writerow(b)
+                    total_bars += 1
             if i % 24 == 0:
-                print(f"  {hour.date()}  ticks cumules: {len(all_ticks)}", flush=True)
-    all_ticks.sort(key=lambda x: x[0])
-    bars = resample_ohlcv(all_ticks, rule_seconds)
-
-    out = Path(out_path)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with open(out, "w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=["time", "open", "high", "low", "close", "volume"])
-        w.writeheader()
-        for b in bars:
-            w.writerow(b)
-    print(f"OK -> {out}  ({len(bars)} barres, {len(all_ticks)} ticks)")
-    return len(bars)
+                fh.flush()
+                print(f"  {hour.date()}  barres ecrites: {total_bars}", flush=True)
+    print(f"OK -> {out}  ({total_bars} nouvelles barres)")
+    return total_bars
 
 
 def _parse_interval(s: str) -> int:
@@ -149,13 +177,16 @@ def main() -> None:
     ap.add_argument("--end", required=True, help="date fin exclue YYYY-MM-DD (UTC)")
     ap.add_argument("--interval", default="5min", help="1min, 5min, 15min...")
     ap.add_argument("--out", default="data/sp500.csv")
+    ap.add_argument("--no-resume", action="store_true",
+                    help="repart de zero (ecrase) au lieu de reprendre le CSV existant")
     args = ap.parse_args()
 
     start = datetime.strptime(args.start, "%Y-%m-%d")
     end = datetime.strptime(args.end, "%Y-%m-%d")
     print(f"Telechargement {args.instrument} {args.start} -> {args.end} "
           f"({args.interval}) depuis Dukascopy...")
-    download(args.instrument, start, end, _parse_interval(args.interval), args.out)
+    download(args.instrument, start, end, _parse_interval(args.interval), args.out,
+             resume=not args.no_resume)
 
 
 if __name__ == "__main__":
