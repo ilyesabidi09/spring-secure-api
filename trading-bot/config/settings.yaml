@@ -1,0 +1,48 @@
+# Configuration du bot de scalping Tradeify 50k Select.
+# Toutes les valeurs de risque sont des garde-fous DURS : si un seuil est atteint,
+# le RiskManager force la mise a plat et bloque les nouveaux trades pour la session.
+
+mode: demo            # demo | live  (JAMAIS live avant validation demo prolongee)
+symbol: MES           # MES (micro S&P) ou MNQ (micro Nasdaq)
+tick_size: 0.25       # taille d'un tick MES
+tick_value: 1.25      # valeur d'un tick MES en USD
+
+account:
+  # Parametres du compte Tradeify 50k Select. A ajuster selon la spec exacte du jour.
+  balance: 50000.0
+  trailing_drawdown: 2000.0   # trailing max drawdown du 50k Select
+  daily_loss_limit: 1000.0    # limite de perte journaliere
+  max_contracts: 5            # taille max de position autorisee
+  consistency_pct: 0.30       # aucun jour ne doit depasser 30% du profit total
+
+risk:
+  risk_per_trade_usd: 150.0   # risque monetaire par trade
+  stop_ticks: 12              # stop en ticks
+  target_ticks: 18            # target en ticks (R:R = 1.5)
+  max_trades_per_day: 10
+  session_start: "09:30"      # heure RTH (US/Eastern)
+  session_end: "16:00"
+
+strategy:
+  ema_fast: 9
+  ema_slow: 21
+  rsi_period: 14
+  rsi_long_max: 65            # ne pas acheter en surachat
+  rsi_short_min: 35           # ne pas vendre en survente
+  vwap_filter: true          # long au-dessus du VWAP, short en dessous
+  min_confidence: 0.55
+
+gex:
+  enabled: true
+  levels_file: data/gex_levels.json   # niveaux fournis par ton abonnement GEX
+  proximity_ticks: 20                 # distance a un mur pour bloquer/booster
+
+orderflow:
+  enabled: false            # active quand un flux DOM/footprint est branche
+  imbalance_ratio: 2.0      # ratio bid/ask minimal pour confirmer
+
+tradovate:
+  demo_base_url: "https://demo.tradovateapi.com/v1"
+  live_base_url: "https://live.tradovateapi.com/v1"
+  ws_demo_url: "wss://demo.tradovateapi.com/v1/websocket"
+  ws_live_url: "wss://live.tradovateapi.com/v1/websocket"

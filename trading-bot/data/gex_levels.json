@@ -1,0 +1,6 @@
+{
+  "_comment": "Exemple de niveaux GEX. Remplace par les valeurs de ton abonnement (SpotGamma, MenthorQ, etc.) chaque matin.",
+  "gamma_flip": 5290.0,
+  "call_walls": [5350.0, 5400.0],
+  "put_walls": [5250.0, 5200.0]
+}
