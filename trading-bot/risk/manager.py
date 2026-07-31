@@ -19,6 +19,7 @@ class RiskConfig:
     risk_per_trade_usd: float
     stop_ticks: int
     tick_value: float
+    tick_size: float
     max_trades_per_day: int
     session_start: time
     session_end: time
@@ -48,9 +49,13 @@ class RiskManager:
         )
 
     # ---- sizing -----------------------------------------------------------
-    def position_size(self) -> int:
-        """Nombre de contrats pour respecter le risque monetaire par trade."""
-        risk_per_contract = self.cfg.stop_ticks * self.cfg.tick_value
+    def position_size(self, stop_dist_points: float | None = None) -> int:
+        """Nombre de contrats pour respecter le risque monetaire par trade, calcule
+        a partir de la distance de stop REELLE (en points). Fallback sur stop_ticks
+        si non fourni."""
+        if stop_dist_points is None or stop_dist_points <= 0:
+            stop_dist_points = self.cfg.stop_ticks * self.cfg.tick_size
+        risk_per_contract = (stop_dist_points / self.cfg.tick_size) * self.cfg.tick_value
         if risk_per_contract <= 0:
             return 0
         qty = int(self.cfg.risk_per_trade_usd // risk_per_contract)

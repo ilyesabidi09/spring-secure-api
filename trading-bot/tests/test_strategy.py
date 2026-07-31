@@ -34,7 +34,7 @@ def test_backtest_pipeline_tourne():
     risk = RiskManager(RiskConfig(
         balance=50000.0, trailing_drawdown=2000.0, daily_loss_limit=1000.0,
         max_contracts=5, consistency_pct=0.30, risk_per_trade_usd=150.0,
-        stop_ticks=12, tick_value=1.25, max_trades_per_day=50,
+        stop_ticks=12, tick_value=1.25, tick_size=0.25, max_trades_per_day=50,
         session_start=time(0, 0), session_end=time(23, 59),
     ))
     res = run_backtest(synthetic_bars(1000), strat, risk,

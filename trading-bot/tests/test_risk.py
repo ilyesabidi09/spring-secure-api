@@ -10,7 +10,7 @@ def make_risk(**over):
     base = dict(
         balance=50000.0, trailing_drawdown=2000.0, daily_loss_limit=1000.0,
         max_contracts=5, consistency_pct=0.30, risk_per_trade_usd=150.0,
-        stop_ticks=12, tick_value=1.25, max_trades_per_day=10,
+        stop_ticks=12, tick_value=1.25, tick_size=0.25, max_trades_per_day=10,
         session_start=time(9, 30), session_end=time(16, 0),
     )
     base.update(over)

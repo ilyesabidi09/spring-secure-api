@@ -26,10 +26,17 @@ class Bar:
 
 @dataclass
 class Signal:
-    """Decision de la strategie pour une barre donnee."""
+    """Decision de la strategie pour une barre donnee.
+
+    Les stops sont exprimes en POINTS de prix (stop_dist/target_dist) pour etre
+    dimensionnes a la volatilite (ATR) et rester corrects quel que soit l'instrument.
+    Les champs *_ticks restent pour compat ; s'ils sont utilises, l'appelant les
+    convertit en points via tick_size."""
     action: Action
-    stop_ticks: int = 0
-    target_ticks: int = 0
+    stop_dist: float = 0.0      # distance du stop en points de prix
+    target_dist: float = 0.0    # distance du target en points de prix
+    stop_ticks: int = 0         # deprecie (compat)
+    target_ticks: int = 0       # deprecie (compat)
     confidence: float = 0.0
     reason: str = ""
 

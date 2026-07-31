@@ -2,6 +2,9 @@
 __pycache__/
 *.pyc
 best_params.json
+wf_*.json
+wf_results.log
+data/_dl_*.log
 .pytest_cache/
 venv/
 .venv/

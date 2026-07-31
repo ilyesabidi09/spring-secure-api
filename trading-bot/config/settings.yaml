@@ -3,9 +3,21 @@
 # le RiskManager force la mise a plat et bloque les nouveaux trades pour la session.
 
 mode: demo            # demo | live  (JAMAIS live avant validation demo prolongee)
-symbol: MES           # MES (micro S&P) ou MNQ (micro Nasdaq)
-tick_size: 0.25       # taille d'un tick MES
-tick_value: 1.25      # valeur d'un tick MES en USD
+symbol: MNQ           # instrument trade par defaut (le bot vise le Nasdaq)
+tick_size: 0.25       # surcharge par instruments[symbol] ci-dessous
+tick_value: 0.50
+
+# Specs des micro futures CME. tick_value = USD par tick (0.25 point).
+instruments:
+  MES: {tick_size: 0.25, tick_value: 1.25}   # Micro S&P  : 5 USD/point
+  MNQ: {tick_size: 0.25, tick_value: 0.50}   # Micro Nasdaq : 2 USD/point
+
+# Frais realistes a inclure dans le backtest (sinon on se ment sur l'edge).
+costs:
+  commission_per_contract: 0.75   # commission par contrat par cote (aller ET retour comptes)
+  slippage_points: 0.25           # slippage estime par cote, en points
+
+strategy_name: scalper   # scalper | orb | vwap
 
 account:
   # Parametres du compte Tradeify 50k Select. A ajuster selon la spec exacte du jour.
@@ -31,6 +43,22 @@ strategy:
   rsi_short_min: 35           # ne pas vendre en survente
   vwap_filter: true          # long au-dessus du VWAP, short en dessous
   min_confidence: 0.55
+  atr_period: 14
+  atr_stop_mult: 1.5         # stop = 1.5 x ATR (dimensionne a la volatilite)
+  rr_ratio: 1.5              # target = 1.5 x stop
+
+orb:
+  orb_minutes: 15
+  atr_period: 14
+  atr_stop_mult: 1.0
+  rr_ratio: 2.0
+  max_entry_minutes: 120
+
+vwap:
+  atr_period: 14
+  dev_mult: 2.0
+  atr_stop_mult: 1.0
+  rr_ratio: 1.5
 
 gex:
   enabled: true

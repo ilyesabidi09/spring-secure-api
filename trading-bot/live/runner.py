@@ -19,7 +19,7 @@ from strategy.scalper import ScalperParams, ScalperStrategy
 log = logging.getLogger("live")
 
 
-def build_risk(cfg: dict) -> RiskManager:
+def build_risk(cfg: dict, tick_size: float, tick_value: float) -> RiskManager:
     acc, rk = cfg["account"], cfg["risk"]
     sh, sm = map(int, rk["session_start"].split(":"))
     eh, em = map(int, rk["session_end"].split(":"))
@@ -27,7 +27,7 @@ def build_risk(cfg: dict) -> RiskManager:
         balance=acc["balance"], trailing_drawdown=acc["trailing_drawdown"],
         daily_loss_limit=acc["daily_loss_limit"], max_contracts=acc["max_contracts"],
         consistency_pct=acc["consistency_pct"], risk_per_trade_usd=rk["risk_per_trade_usd"],
-        stop_ticks=rk["stop_ticks"], tick_value=cfg["tick_value"],
+        stop_ticks=rk["stop_ticks"], tick_value=tick_value, tick_size=tick_size,
         max_trades_per_day=rk["max_trades_per_day"],
         session_start=time(sh, sm), session_end=time(eh, em),
     ))
@@ -43,16 +43,11 @@ class LiveRunner:
             ws_url=tv["ws_live_url"] if self.is_live else tv["ws_demo_url"],
             credentials=cfg["credentials"], is_live=self.is_live,
         ))
-        s = cfg["strategy"]
-        self.strategy = ScalperStrategy(ScalperParams(
-            ema_fast=s["ema_fast"], ema_slow=s["ema_slow"], rsi_period=s["rsi_period"],
-            rsi_long_max=s["rsi_long_max"], rsi_short_min=s["rsi_short_min"],
-            vwap_filter=s["vwap_filter"], min_confidence=s["min_confidence"],
-            stop_ticks=cfg["risk"]["stop_ticks"], target_ticks=cfg["risk"]["target_ticks"],
-            gex_enabled=cfg["gex"]["enabled"], gex_proximity_ticks=cfg["gex"]["proximity_ticks"],
-            tick_size=cfg["tick_size"],
-        ))
-        self.risk = build_risk(cfg)
+        from run_backtest import build_strategy
+        spec = cfg["instruments"][cfg["symbol"]]
+        self.tick_size, self.tick_value = spec["tick_size"], spec["tick_value"]
+        self.strategy = build_strategy(cfg["strategy_name"], cfg, self.tick_size)
+        self.risk = build_risk(cfg, self.tick_size, self.tick_value)
         self.context = Context(
             gex_levels=load_gex_levels(cfg["gex"]["levels_file"]) if cfg["gex"]["enabled"] else {})
         self.position = Action.FLAT
@@ -67,12 +62,15 @@ class LiveRunner:
         if not ok:
             log.info("Trade refuse par le risque: %s", reason)
             return
-        qty = self.risk.position_size()
-        if qty <= 0:
+        stop_dist = signal.stop_dist if signal.stop_dist > 0 else signal.stop_ticks * self.tick_size
+        tgt_dist = signal.target_dist if signal.target_dist > 0 else signal.target_ticks * self.tick_size
+        qty = self.risk.position_size(stop_dist)
+        if qty <= 0 or stop_dist <= 0:
             return
+        stop_ticks = round(stop_dist / self.tick_size)
+        target_ticks = round(tgt_dist / self.tick_size)
         order = self.client.place_bracket(
-            signal.action, qty, bar.close, signal.stop_ticks,
-            signal.target_ticks, self.cfg["tick_size"])
+            signal.action, qty, bar.close, stop_ticks, target_ticks, self.tick_size)
         order["symbol"] = self.cfg["symbol"]
         if self.is_live:
             self.client.submit(order)

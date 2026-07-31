@@ -52,6 +52,34 @@ class RSI:
         return 100.0 - 100.0 / (1 + rs)
 
 
+class ATR:
+    """Average True Range (Wilder), incremental. Mesure la volatilite pour
+    dimensionner les stops proportionnellement au marche (indispensable quand on
+    passe du S&P ~7400 au Nasdaq ~25000)."""
+
+    def __init__(self, period: int):
+        self.period = period
+        self.prev_close: float | None = None
+        self.value: float | None = None
+        self.count = 0
+        self._acc = 0.0
+
+    def update(self, high: float, low: float, close: float) -> float | None:
+        if self.prev_close is None:
+            tr = high - low
+        else:
+            tr = max(high - low, abs(high - self.prev_close), abs(low - self.prev_close))
+        self.prev_close = close
+        self.count += 1
+        if self.count <= self.period:
+            self._acc += tr
+            if self.count == self.period:
+                self.value = self._acc / self.period
+            return self.value
+        self.value = (self.value * (self.period - 1) + tr) / self.period
+        return self.value
+
+
 class SessionVWAP:
     """VWAP remis a zero a chaque nouvelle session (jour)."""
 
