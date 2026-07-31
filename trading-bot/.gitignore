@@ -6,6 +6,7 @@ wf_*.json
 wf_*.log
 holdout_*.json
 holdout_*.log
+val*.log
 data/_dl_*.log
 .pytest_cache/
 venv/
