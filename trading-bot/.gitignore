@@ -4,6 +4,8 @@ __pycache__/
 best_params.json
 wf_*.json
 wf_*.log
+holdout_*.json
+holdout_*.log
 data/_dl_*.log
 .pytest_cache/
 venv/
