@@ -7,6 +7,8 @@ wf_*.log
 holdout_*.json
 holdout_*.log
 val*.log
+slip.log
+ho_slip_*.json
 data/_dl_*.log
 .pytest_cache/
 venv/
