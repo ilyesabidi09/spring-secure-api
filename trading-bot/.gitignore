@@ -27,3 +27,6 @@ ho_slip_mnq_*.json
 repro.log
 repro.py
 repro_*.json
+dig*.log
+dig*.py
+dig_*.json
