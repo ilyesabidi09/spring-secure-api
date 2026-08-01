@@ -33,16 +33,18 @@ rrRatio       = input.float(2.99,"Target = R:R * stop")
 riskUSD       = input.float(75.0,"Risque par trade (USD)")
 maxContracts  = input.int(5,    "Contrats max")
 pointValue    = input.float(2.0, "USD par point (MNQ=2, NQ=20)")
-useSession    = input.bool(true, "Filtre session RTH uniquement")
-sess          = input.session("0930-1600", "Session RTH")
+useSession    = input.bool(true, "Filtre session RTH 09:30-16:00 NY uniquement")
 
 // ---------- Indicateurs ----------
 upper = ta.highest(high, channelPeriod)[1]   // canal des barres PRECEDENTES
 lower = ta.lowest(low,  channelPeriod)[1]
 atr   = ta.atr(atrPeriod)
 [diP, diM, adx] = ta.dmi(adxPeriod, adxPeriod)
-// Session en heure de New York (comme le backtest Python), PAS l'heure d'echange CME.
-inSess = not useSession or not na(time(timeframe.period, sess, "America/New_York"))
+// Filtre RTH explicite en heure de New York (09:30-16:00). Robuste : on calcule
+// l'heure/minute NY directement plutot que de dependre de la fonction session()
+// (qui, sur les futures 24h, ne restreignait pas correctement).
+nyMinutes = hour(time, "America/New_York") * 60 + minute(time, "America/New_York")
+inSess = not useSession or (nyMinutes >= 570 and nyMinutes < 960)  // 570=09:30, 960=16:00
 
 // Avertissement si le chart n'est pas en 5 minutes.
 if barstate.islast and timeframe.period != "5"
