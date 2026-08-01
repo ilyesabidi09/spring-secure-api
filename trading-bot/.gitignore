@@ -30,3 +30,5 @@ repro_*.json
 dig*.log
 dig*.py
 dig_*.json
+grid.log
+grid.py
