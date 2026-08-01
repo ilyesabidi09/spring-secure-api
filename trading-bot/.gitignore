@@ -19,3 +19,5 @@ venv/
 data/*.csv
 # Logs de telechargement
 data/_dl_*.log
+rw_*.json
+realwf.log
