@@ -87,15 +87,16 @@ bollinger:                # fade des bandes en range (ADX faible)
   atr_stop_mult: 1.0
   rr_ratio: 1.5
 
-donchian:                 # cassure de canal (breakout) — PARAMS VALIDES sur VRAI MNQ
-  # Databento CME (GLBX.MDP3), M5, 2 ans : walk-forward 4/4, holdout PF 2.09 (+877),
-  # croisee NQ 4/4, MDD < 800. C'est l'instrument reel trade par Tradeify.
-  channel_period: 36
+donchian:                 # cassure de canal (breakout) — VALIDE sur VRAI MNQ (reproductible)
+  # Databento CME (GLBX.MDP3), M5, 2 ans. Walk-forward 4/4 (+3565, 111 trades).
+  # Holdout reproductible (seed fixe) : +432 net, PF 1.19, 50 trades, MDD 545.
+  # Edge REEL mais MODESTE (PF ~1.2). Momentum ; le mean-reversion echoue sur ce marche.
+  channel_period: 18
   adx_period: 14
-  adx_min: 21.64
+  adx_min: 19.97
   atr_period: 14
-  atr_stop_mult: 1.62
-  rr_ratio: 2.62
+  atr_stop_mult: 1.40
+  rr_ratio: 2.99
 
 fvg:                      # retest de Fair Value Gap (ICT / BPR)
   atr_period: 14
