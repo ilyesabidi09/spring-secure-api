@@ -14,6 +14,19 @@ from backtest.engine import run_backtest
 from risk.manager import RiskConfig, RiskManager
 
 
+def flatten_args(cfg: dict) -> dict:
+    """Traduit le bloc config 'flatten' (regle prop firm) en kwargs run_backtest."""
+    f = cfg.get("flatten")
+    if not f:
+        return {}
+    def _t(s):
+        h, m = map(int, s.split(":"))
+        return time(h, m)
+    return dict(flatten_from=_t(f["flatten_time"]),
+                no_entry_from=_t(f["no_entry_from"]),
+                no_entry_to=_t(f["no_entry_to"]))
+
+
 def _build_risk(cfg: dict, tick_size: float, tick_value: float) -> RiskManager:
     acc, rk = cfg["account"], cfg["risk"]
     sh, sm = map(int, rk["session_start"].split(":"))
@@ -144,7 +157,8 @@ def _score(bars, name, cfg, gex, tick_size, tick_value, comm, slip, overrides) -
     strat = _make_strategy(name, cfg, tick_size, overrides)
     risk = _build_risk(cfg, tick_size, tick_value)
     res = run_backtest(bars, strat, risk, tick_size, tick_value, gex,
-                       commission_per_contract=comm, slippage_points=slip)
+                       commission_per_contract=comm, slippage_points=slip,
+                       **flatten_args(cfg))
     if len(res.trades) < 10:
         return -1e9
     return res.net_pnl - 0.5 * res.max_drawdown
@@ -190,7 +204,8 @@ def walk_forward(bars, cfg: dict, gex: dict, instrument: str, strategy_name: str
         strat = _make_strategy(strategy_name, cfg, tick_size, best)
         risk = _build_risk(cfg, tick_size, tick_value)
         res = run_backtest(oos_bars, strat, risk, tick_size, tick_value, gex,
-                           commission_per_contract=comm, slippage_points=slip)
+                           commission_per_contract=comm, slippage_points=slip,
+                           **flatten_args(cfg))
         reports.append({"fold": k, "oos": res.summary(), "params": best})
         if res.net_pnl > best_oos:
             best_oos = res.net_pnl

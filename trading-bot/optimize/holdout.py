@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 
 from backtest.engine import run_backtest
-from optimize.walkforward import _build_risk, _make_strategy, optimize_window
+from optimize.walkforward import _build_risk, _make_strategy, flatten_args, optimize_window
 
 
 def run_holdout(bars, cfg: dict, gex: dict, instrument: str, strategy_name: str,
@@ -33,7 +33,8 @@ def run_holdout(bars, cfg: dict, gex: dict, instrument: str, strategy_name: str,
         strat = _make_strategy(strategy_name, cfg, tick_size, best)
         risk = _build_risk(cfg, tick_size, tick_value)
         return run_backtest(segment, strat, risk, tick_size, tick_value, gex,
-                            commission_per_contract=comm, slippage_points=slip)
+                            commission_per_contract=comm, slippage_points=slip,
+                            **flatten_args(cfg))
 
     is_res = _bt(is_bars)
     hold_res = _bt(hold_bars)

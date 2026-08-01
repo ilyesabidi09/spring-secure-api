@@ -38,6 +38,14 @@ risk:
   session_start: "00:00"      # 24h : trade all day (plus RTH-only)
   session_end: "23:59"
 
+# Regle prop firm Tradeify : PAS d'overnight. On flatten tout a 16:45 ET (avant la
+# maintenance CME ; auto-liquidation forcee a 16:59) et on ne rentre pas dans la
+# fenetre flatten+break 16:30 -> 18:00 ET.
+flatten:
+  flatten_time: "16:45"     # force-close des positions ouvertes (heure ET)
+  no_entry_from: "16:30"    # plus de nouvelles entrees a partir de cette heure...
+  no_entry_to: "18:00"      # ...jusqu'a la reouverture Globex
+
 strategy:
   ema_fast: 9
   ema_slow: 21

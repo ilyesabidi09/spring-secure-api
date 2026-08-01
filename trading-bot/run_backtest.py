@@ -19,6 +19,7 @@ from config import load_config
 from data.loader import load_csv, synthetic_bars
 from risk.manager import RiskConfig, RiskManager
 from strategy.gex import load_gex_levels
+from optimize.walkforward import flatten_args
 
 
 def build_risk(cfg: dict, tick_size: float, tick_value: float) -> RiskManager:
@@ -129,7 +130,8 @@ def main() -> None:
     strat = build_strategy(strat_name, cfg, tick_size)
     risk = build_risk(cfg, tick_size, tick_value)
     res = run_backtest(bars, strat, risk, tick_size, tick_value, gex,
-                       commission_per_contract=comm, slippage_points=slip)
+                       commission_per_contract=comm, slippage_points=slip,
+                       **flatten_args(cfg))
     src = "CSV" if args.csv else "SYNTHETIQUES (plomberie seulement)"
     print(f"=== Backtest {instrument} / {strat_name} (donnees: {src}) ===")
     print(json.dumps(res.summary(), indent=2))

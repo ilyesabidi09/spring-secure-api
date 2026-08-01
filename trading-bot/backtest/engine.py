@@ -92,13 +92,18 @@ def run_backtest(bars: list[Bar], strategy, risk: RiskManager,
                  tick_size: float, tick_value: float,
                  gex_levels: dict | None = None,
                  commission_per_contract: float = 0.0,
-                 slippage_points: float = 0.0) -> BacktestResult:
+                 slippage_points: float = 0.0,
+                 flatten_from=None, no_entry_from=None, no_entry_to=None) -> BacktestResult:
+    """flatten_from/no_entry_from/no_entry_to (datetime.time) : regle prop firm
+    'pas d'overnight' -> force-close des positions a flatten_from et blocage des
+    entrees dans [no_entry_from, no_entry_to). Si None, comportement inchange."""
     result = BacktestResult()
     context = Context(gex_levels=gex_levels or {})
     open_trade: Trade | None = None
 
     for bar in bars:
         risk.start_day(bar.time.date())
+        t = bar.time.time()
 
         # 1. Gerer une position ouverte : stop/target touche ?
         if open_trade is not None:
@@ -109,9 +114,20 @@ def run_backtest(bars: list[Bar], strategy, risk: RiskManager,
                 result.equity_curve.append(risk.state.equity)
                 open_trade = None
 
-        # 2. Chercher une nouvelle entree.
+        # 1b. Flatten obligatoire (prop firm) : force-close au prix marche.
+        if open_trade is not None and flatten_from is not None and t >= flatten_from \
+                and (no_entry_to is None or t < no_entry_to):
+            _force_flat(open_trade, bar, commission_per_contract, slippage_points)
+            risk.on_trade_closed(open_trade.pnl)
+            result.trades.append(open_trade)
+            result.equity_curve.append(risk.state.equity)
+            open_trade = None
+
+        # 2. Chercher une nouvelle entree (bloquee pendant la fenetre flatten+break).
+        in_no_entry = (no_entry_from is not None and no_entry_to is not None
+                       and no_entry_from <= t < no_entry_to)
         signal = strategy.on_bar(bar, context)
-        if open_trade is None and signal.action in (Action.LONG, Action.SHORT):
+        if open_trade is None and not in_no_entry and signal.action in (Action.LONG, Action.SHORT):
             ok, _reason = risk.can_trade(bar.time.time())
             if ok:
                 stop_dist = _stop_dist(signal, tick_size)
@@ -140,6 +156,18 @@ def _open(signal, bar, qty, tick_size, tick_value, stop_dist) -> Trade:
         stop = entry + stop_dist
         target = entry - tgt_dist
     return Trade(signal.action, entry, stop, target, qty, bar.time, tick_size, tick_value)
+
+
+def _force_flat(t: Trade, bar: Bar, commission_per_contract: float,
+                slippage_points: float) -> None:
+    """Cloture forcee au marche (regle prop firm 'flatten EOD'), prix = close de la barre."""
+    t.exit = bar.close
+    t.exit_time = bar.time
+    move = (t.exit - t.entry) if t.direction == Action.LONG else (t.entry - t.exit)
+    t.gross_pnl = move / t.tick_size * t.tick_value * t.qty
+    slip_cost = 2 * (slippage_points / t.tick_size) * t.tick_value
+    t.cost = (2 * commission_per_contract + slip_cost) * t.qty
+    t.pnl = t.gross_pnl - t.cost
 
 
 def _try_close(t: Trade, bar: Bar, commission_per_contract: float,
