@@ -38,7 +38,13 @@ upper = ta.highest(high, channelPeriod)[1]   // canal des barres PRECEDENTES
 lower = ta.lowest(low,  channelPeriod)[1]
 atr   = ta.atr(atrPeriod)
 [diP, diM, adx] = ta.dmi(adxPeriod, adxPeriod)
-inSess = not useSession or not na(time(timeframe.period, sess))
+// Session RTH en heure de New York (comme le backtest Python), pas l'heure d'echange.
+inSess = not useSession or not na(time(timeframe.period, sess, "America/New_York"))
+
+// Avertissement si le chart n'est pas en 5 minutes (la strategie est validee en M5).
+if barstate.islast and timeframe.period != "5"
+    label.new(bar_index, high, "⚠ Mets le chart en 5 minutes (strategie M5)",
+         color=color.orange, style=label.style_label_down, textcolor=color.white)
 
 // ---------- Sizing base sur le risque ----------
 stopPts = atrStopMult * atr
@@ -57,10 +63,12 @@ if longCond
     strategy.entry("Long", strategy.long, qty=qty)
     slPrice := close - stopPts
     tpPrice := close + stopPts * rrRatio
+    alert("LONG " + syminfo.ticker, alert.freq_once_per_bar_close)
 if shortCond
     strategy.entry("Short", strategy.short, qty=qty)
     slPrice := close + stopPts
     tpPrice := close - stopPts * rrRatio
+    alert("SHORT " + syminfo.ticker, alert.freq_once_per_bar_close)
 
 // ---------- Sorties bracket (stop / target figes a l'entree) ----------
 if strategy.position_size > 0
