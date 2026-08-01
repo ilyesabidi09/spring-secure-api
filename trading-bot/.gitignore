@@ -38,3 +38,5 @@ dig24_*.json
 digf*.log
 digf*.py
 digf_*.json
+gridd*.log
+gridd*.py
