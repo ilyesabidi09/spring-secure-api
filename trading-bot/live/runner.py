@@ -51,9 +51,18 @@ class LiveRunner:
         self.context = Context(
             gex_levels=load_gex_levels(cfg["gex"]["levels_file"]) if cfg["gex"]["enabled"] else {})
         self.position = Action.FLAT
+        from data.loader import BarAggregator
+        self.agg = BarAggregator(cfg["timeframe_minutes"])
+
+    def feed_1m(self, bar: Bar) -> None:
+        """Point d'entree du flux 1-min (Tradovate WS) : agrege vers le timeframe
+        de la strategie (M5) puis declenche on_bar sur chaque barre terminee."""
+        agg_bar = self.agg.add(bar)
+        if agg_bar is not None:
+            self.on_bar(agg_bar)
 
     def on_bar(self, bar: Bar) -> None:
-        """Appele a la cloture de chaque barre par le flux de donnees."""
+        """Appele a la cloture de chaque barre du timeframe strategie par le flux."""
         self.risk.start_day(bar.time.date())
         signal = self.strategy.on_bar(bar, self.context)
         if signal.action == Action.FLAT or self.position != Action.FLAT:

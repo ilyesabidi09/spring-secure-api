@@ -54,6 +54,36 @@ def resample_bars(bars: list[Bar], minutes: int) -> list[Bar]:
     return out
 
 
+class BarAggregator:
+    """Agrege des barres 1-min en barres de `minutes` EN TEMPS REEL (streaming).
+    add() renvoie la barre agregee terminee quand un nouveau bucket commence, sinon None.
+    Utilise en live/forward-test pour transformer le flux 1-min en barres M5."""
+
+    def __init__(self, minutes: int):
+        self.minutes = minutes
+        self.step = minutes * 60
+        self.cur_key = None
+        self.t0 = None
+        self.o = self.h = self.l = self.c = self.vol = 0.0
+
+    def add(self, bar: Bar) -> Bar | None:
+        key = int(bar.time.timestamp()) // self.step
+        completed = None
+        if self.cur_key is not None and key != self.cur_key:
+            completed = Bar(self.t0, self.o, self.h, self.l, self.c, self.vol)
+            self.cur_key = None
+        if self.cur_key is None:
+            self.cur_key = key
+            self.t0 = bar.time.replace(minute=(bar.time.minute // self.minutes) * self.minutes,
+                                       second=0, microsecond=0)
+            self.o, self.h, self.l, self.c, self.vol = bar.open, bar.high, bar.low, bar.close, 0.0
+        self.h = max(self.h, bar.high)
+        self.l = min(self.l, bar.low)
+        self.c = bar.close
+        self.vol += bar.volume
+        return completed
+
+
 def synthetic_bars(n: int = 2000, start_price: float = 5300.0,
                    seed: int = 42, days: int = 5) -> list[Bar]:
     """Barres 1-minute synthetiques (marche aleatoire + cycles) pour tester le

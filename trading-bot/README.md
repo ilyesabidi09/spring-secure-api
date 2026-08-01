@@ -70,6 +70,37 @@ python -m live.runner
 uvicorn webhook.server:app --port 8000
 ```
 
+## ✅ Stratégie validée : Donchian breakout M5 (le résultat de la recherche)
+
+Après avoir testé 8 stratégies + un sélecteur de régime + SMT sur 2 ans de vraies
+données (frais inclus, walk-forward, holdout verrouillé, validation croisée), **une
+seule survit à tous les tests** : le **Donchian channel breakout en M5** (momentum).
+
+| Test | Donchian M5 |
+|---|---|
+| Walk-forward Nasdaq (4 folds OOS) | ✅ 4/4 positifs (+4335) |
+| Holdout verrouillé (6 mois jamais vus) | ✅ positif, PF 1.26 |
+| Validation croisée S&P | ✅ +1709 |
+| **Pool MNQ+MES holdout (136 trades)** | ✅ **+3658 net, PF 1.25** |
+| MDD mono-instrument | ✅ 400-600 (< limite 2000) |
+| Filtre SMT (divergence NQ/ES) | ❌ testé, dégrade → rejeté |
+
+Params validés (dans `config/settings.yaml`) : `channel_period 13, adx_min 20,
+atr_stop_mult 2.36, rr_ratio 3.27`. Edge **modeste mais réel** (PF ~1.25), pas une
+machine à cash. **Aucun abonnement GEX/orderflow requis** — l'edge a été trouvé sans.
+
+### Forward-test (paper) — le juge avant le réel
+`forward_test.py` rejoue un flux 1-min **exactement comme le live** (agrégateur M5 →
+stratégie → RiskManager → fills bracket simulés, frais inclus) :
+```bash
+python forward_test.py --csv data/nasdaq_1m.csv            # tout l'historique
+python forward_test.py --csv data/nasdaq_1m.csv --tail 40000  # fenêtre récente
+```
+> ⚠️ Prochaine étape obligatoire : **forward-test en compte DEMO Tradovate** (vrais
+> fills, temps réel, plusieurs semaines) avant tout capital réel. C'est là que le
+> slippage réel du breakout se mesure. `live/runner.py::feed_1m` utilise le même
+> agrégateur — brancher le flux WS 1-min Tradovate dessus suffit.
+
 ## La boucle « qui s'améliore »
 `optimize/walkforward.py` optimise les paramètres sur une fenêtre *in-sample*, les valide
 *out-of-sample*, et n'enregistre que ce qui tient hors échantillon dans `best_params.json`

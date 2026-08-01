@@ -6,6 +6,7 @@ mode: demo            # demo | live  (JAMAIS live avant validation demo prolonge
 symbol: MNQ           # instrument trade par defaut (le bot vise le Nasdaq)
 tick_size: 0.25       # surcharge par instruments[symbol] ci-dessous
 tick_value: 0.50
+timeframe_minutes: 5  # STRATEGIE VALIDEE = Donchian breakout en M5
 
 # Specs des micro futures CME. tick_value = USD par tick (0.25 point).
 instruments:
@@ -17,7 +18,9 @@ costs:
   commission_per_contract: 0.75   # commission par contrat par cote (aller ET retour comptes)
   slippage_points: 0.25           # slippage estime par cote, en points
 
-strategy_name: scalper   # scalper | orb | vwap
+# Strategie VERROUILLEE apres validation (walk-forward 4/4 + holdout + croisee S&P
+# + pool MNQ/MES : holdout 136 trades, PF 1.25, +3658 net). SMT teste et rejete.
+strategy_name: donchian   # scalper | vwap | orb | meta | rsi2 | bollinger | donchian | fvg
 
 account:
   # Parametres du compte Tradeify 50k Select. A ajuster selon la spec exacte du jour.
@@ -84,13 +87,13 @@ bollinger:                # fade des bandes en range (ADX faible)
   atr_stop_mult: 1.0
   rr_ratio: 1.5
 
-donchian:                 # cassure de canal (breakout), filtre ADX
-  channel_period: 20
+donchian:                 # cassure de canal (breakout) — PARAMS VALIDES (pool MNQ/MES M5)
+  channel_period: 13
   adx_period: 14
-  adx_min: 20
+  adx_min: 20.0
   atr_period: 14
-  atr_stop_mult: 1.5
-  rr_ratio: 2.0
+  atr_stop_mult: 2.36
+  rr_ratio: 3.27
 
 fvg:                      # retest de Fair Value Gap (ICT / BPR)
   atr_period: 14
