@@ -34,9 +34,9 @@ risk:
   risk_per_trade_usd: 75.0    # RISQUE REDUIT (vise MDD < 1500, sous la limite Tradeify)
   stop_ticks: 12              # stop en ticks (fallback ; les strategies utilisent l'ATR)
   target_ticks: 18            # target en ticks (R:R = 1.5)
-  max_trades_per_day: 8       # plafond journalier resserre
-  session_start: "09:30"      # heure RTH (US/Eastern)
-  session_end: "16:00"
+  max_trades_per_day: 20      # 24h -> plus d'opportunites
+  session_start: "00:00"      # 24h : trade all day (plus RTH-only)
+  session_end: "23:59"
 
 strategy:
   ema_fast: 9

@@ -32,3 +32,6 @@ dig*.py
 dig_*.json
 grid.log
 grid.py
+dig24*.log
+dig24*.py
+dig24_*.json
