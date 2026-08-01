@@ -159,7 +159,10 @@ def optimize_window(bars, name, cfg, gex, tick_size, tick_value, comm, slip,
         ov = _search_space(name, trial)
         return _score(bars, name, cfg, gex, tick_size, tick_value, comm, slip, ov)
 
-    study = optuna.create_study(direction="maximize")
+    # Seed fixe -> optimisation reproductible (sinon le resultat holdout vibre
+    # d'un run a l'autre et n'est pas fiable, surtout sur petit echantillon).
+    study = optuna.create_study(direction="maximize",
+                                sampler=optuna.samplers.TPESampler(seed=42))
     study.optimize(objective, n_trials=n_trials)
     return study.best_params
 

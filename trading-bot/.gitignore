@@ -24,3 +24,6 @@ realwf.log
 slip_mnq.log
 slip_mnq.py
 ho_slip_mnq_*.json
+repro.log
+repro.py
+repro_*.json
