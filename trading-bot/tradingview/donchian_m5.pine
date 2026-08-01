@@ -1,0 +1,78 @@
+//@version=5
+// =====================================================================
+// Donchian M5 Breakout — strategie VALIDEE pour Tradeify (MNQ/MES)
+// Portage fidele du bot Python (backtest 2 ans + holdout + pool MNQ/MES).
+// Params par defaut = ceux valides : channel 13, ADX>=20, stop 2.36xATR, R:R 3.27.
+//
+// UTILISATION :
+//   1. Colle ce script dans Pine Editor (TradingView).
+//   2. Chart en 5 minutes, sur MNQ1! (ou MES1!).
+//   3. "Add to chart" -> onglet Strategy Tester pour le backtest.
+//   4. Pour trader : soit manuel, soit alertes -> pont (TradersPost/PickMyTrade)
+//      -> compte Tradeify. Regle les commissions/slippage dans les Proprietes.
+//
+// NOTE : les regles de compte Tradeify (trailing drawdown 2000, daily loss,
+// consistency) ne sont PAS simulees ici — a gerer via le pont ou manuellement.
+// =====================================================================
+strategy("Donchian M5 Breakout - Tradeify", overlay=true,
+     initial_capital=50000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     commission_type=strategy.commission.cash_per_contract, commission_value=0.75,
+     slippage=1, pyramiding=0, calc_on_every_tick=false, process_orders_on_close=true)
+
+// ---------- Inputs ----------
+channelPeriod = input.int(13,   "Donchian channel (barres)")
+adxPeriod     = input.int(14,   "ADX / DI period")
+adxMin        = input.float(20.0,"ADX minimum (filtre tendance)")
+atrPeriod     = input.int(14,   "ATR period")
+atrStopMult   = input.float(2.36,"Stop = x * ATR")
+rrRatio       = input.float(3.27,"Target = R:R * stop")
+riskUSD       = input.float(75.0,"Risque par trade (USD)")
+maxContracts  = input.int(5,    "Contrats max")
+pointValue    = input.float(2.0, "USD par point (MNQ=2, MES=5)")
+useSession    = input.bool(true, "Filtre session RTH uniquement")
+sess          = input.session("0930-1600", "Session RTH (heure d'echange)")
+
+// ---------- Indicateurs ----------
+upper = ta.highest(high, channelPeriod)[1]   // canal des barres PRECEDENTES
+lower = ta.lowest(low,  channelPeriod)[1]
+atr   = ta.atr(atrPeriod)
+[diP, diM, adx] = ta.dmi(adxPeriod, adxPeriod)
+inSess = not useSession or not na(time(timeframe.period, sess))
+
+// ---------- Sizing base sur le risque ----------
+stopPts = atrStopMult * atr
+riskPerContract = stopPts * pointValue
+qty = math.min(maxContracts, math.max(1, math.floor(riskUSD / riskPerContract)))
+
+// ---------- Entrees ----------
+flat      = strategy.position_size == 0
+longCond  = close > upper and adx > adxMin and inSess and flat
+shortCond = close < lower and adx > adxMin and inSess and flat
+
+var float slPrice = na
+var float tpPrice = na
+
+if longCond
+    strategy.entry("Long", strategy.long, qty=qty)
+    slPrice := close - stopPts
+    tpPrice := close + stopPts * rrRatio
+if shortCond
+    strategy.entry("Short", strategy.short, qty=qty)
+    slPrice := close + stopPts
+    tpPrice := close - stopPts * rrRatio
+
+// ---------- Sorties bracket (stop / target figes a l'entree) ----------
+if strategy.position_size > 0
+    strategy.exit("L-exit", "Long",  stop=slPrice, limit=tpPrice)
+if strategy.position_size < 0
+    strategy.exit("S-exit", "Short", stop=slPrice, limit=tpPrice)
+
+// ---------- Visuel ----------
+plot(upper, "Donchian haut", color=color.new(color.teal, 40))
+plot(lower, "Donchian bas",  color=color.new(color.red, 40))
+
+// ---------- Alertes pour pont (TradersPost / PickMyTrade) ----------
+// Configure le message JSON selon la doc de ton pont.
+alertcondition(longCond,  "LONG entry",  "buy MNQ")
+alertcondition(shortCond, "SHORT entry", "sell MNQ")
