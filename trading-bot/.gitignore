@@ -9,6 +9,8 @@ holdout_*.log
 val*.log
 slip.log
 ho_slip_*.json
+pool.log
+pooled_*.json
 data/_dl_*.log
 .pytest_cache/
 venv/
