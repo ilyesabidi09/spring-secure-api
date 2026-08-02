@@ -51,3 +51,6 @@ es15_*.json
 data/*.gz
 tlcombos*.log
 tlcombos*.py
+tlval*.log
+tlval*.py
+tlval_*.json
