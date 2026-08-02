@@ -49,3 +49,5 @@ es15*.log
 es15*.py
 es15_*.json
 data/*.gz
+tlcombos*.log
+tlcombos*.py
