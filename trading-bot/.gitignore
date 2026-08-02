@@ -48,3 +48,4 @@ m15_*.json
 es15*.log
 es15*.py
 es15_*.json
+data/*.gz
