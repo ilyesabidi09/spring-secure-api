@@ -20,7 +20,7 @@ costs:
 
 # Strategie VERROUILLEE apres validation (walk-forward 4/4 + holdout + croisee S&P
 # + pool MNQ/MES : holdout 136 trades, PF 1.25, +3658 net). SMT teste et rejete.
-strategy_name: donchian   # scalper | vwap | orb | meta | rsi2 | bollinger | donchian | fvg
+strategy_name: trendline  # MEILLEUR CANDIDAT : trendline multi-TF (exec M5 / htf M120)
 
 account:
   # Parametres du compte Tradeify 50k Select. A ajuster selon la spec exacte du jour.
