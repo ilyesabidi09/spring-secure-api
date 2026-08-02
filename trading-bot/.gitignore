@@ -61,3 +61,5 @@ tlmnq*.py
 tlho5*.log
 tlho5*.py
 tlho5.json
+sniper*.log
+sniper*.py
