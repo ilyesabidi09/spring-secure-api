@@ -83,6 +83,15 @@ def _search_space(name: str, trial) -> dict:
         return dict(atr_stop_mult=trial.suggest_float("atr_stop_mult", 0.5, 2.5),
                     rr_ratio=trial.suggest_float("rr_ratio", 1.5, 4.0),
                     max_age=trial.suggest_int("max_age", 30, 240))
+    if name == "trendline":
+        # exec_minutes / htf_minutes NON optimises (ils definissent la combinaison testee).
+        return dict(pivot_lookback=trial.suggest_int("pivot_lookback", 3, 8),
+                    min_touches=trial.suggest_int("min_touches", 2, 4),
+                    tol_atr=trial.suggest_float("tol_atr", 0.3, 1.0),
+                    break_margin_atr=trial.suggest_float("break_margin_atr", 0.0, 0.4),
+                    require_retest=trial.suggest_categorical("require_retest", [True, False]),
+                    atr_stop_mult=trial.suggest_float("atr_stop_mult", 0.8, 3.0),
+                    rr_ratio=trial.suggest_float("rr_ratio", 1.0, 3.5))
     raise ValueError(name)
 
 
@@ -150,6 +159,16 @@ def _make_strategy(name: str, cfg: dict, tick_size: float, overrides: dict):
         return FVGStrategy(FVGParams(
             atr_period=fv["atr_period"], atr_stop_mult=fv["atr_stop_mult"],
             rr_ratio=fv["rr_ratio"], max_age=fv["max_age"], tick_size=tick_size))
+    if name == "trendline":
+        from strategy.trendline import TrendlineParams, TrendlineBreakoutStrategy
+        t = {**cfg["trendline"], **overrides}
+        return TrendlineBreakoutStrategy(TrendlineParams(
+            exec_minutes=t["exec_minutes"], htf_minutes=t["htf_minutes"],
+            pivot_lookback=t["pivot_lookback"], min_touches=t["min_touches"],
+            tol_atr=t["tol_atr"], break_margin_atr=t["break_margin_atr"],
+            require_retest=t["require_retest"], retest_window=t["retest_window"],
+            atr_period=t["atr_period"], atr_stop_mult=t["atr_stop_mult"],
+            rr_ratio=t["rr_ratio"], tick_size=tick_size))
     raise ValueError(name)
 
 

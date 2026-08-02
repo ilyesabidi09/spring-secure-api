@@ -97,6 +97,16 @@ def build_strategy(name: str, cfg: dict, tick_size: float):
         return FVGStrategy(FVGParams(
             atr_period=fv["atr_period"], atr_stop_mult=fv["atr_stop_mult"],
             rr_ratio=fv["rr_ratio"], max_age=fv["max_age"], tick_size=tick_size))
+    if name == "trendline":
+        from strategy.trendline import TrendlineParams, TrendlineBreakoutStrategy
+        t = cfg["trendline"]
+        return TrendlineBreakoutStrategy(TrendlineParams(
+            exec_minutes=t["exec_minutes"], htf_minutes=t["htf_minutes"],
+            pivot_lookback=t["pivot_lookback"], min_touches=t["min_touches"],
+            tol_atr=t["tol_atr"], break_margin_atr=t["break_margin_atr"],
+            require_retest=t["require_retest"], retest_window=t["retest_window"],
+            atr_period=t["atr_period"], atr_stop_mult=t["atr_stop_mult"],
+            rr_ratio=t["rr_ratio"], tick_size=tick_size))
     raise ValueError(f"strategie inconnue: {name}")
 
 

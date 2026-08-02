@@ -112,6 +112,19 @@ fvg:                      # retest de Fair Value Gap (ICT / BPR)
   rr_ratio: 2.0
   max_age: 120
 
+trendline:                # cassure de trendline multi-timeframe (detection htf, exec bas TF)
+  exec_minutes: 5
+  htf_minutes: 30
+  pivot_lookback: 4
+  min_touches: 3
+  tol_atr: 0.6
+  break_margin_atr: 0.1
+  require_retest: true
+  retest_window: 20
+  atr_period: 14
+  atr_stop_mult: 1.5
+  rr_ratio: 2.0
+
 gex:
   enabled: true
   levels_file: data/gex_levels.json   # niveaux fournis par ton abonnement GEX
