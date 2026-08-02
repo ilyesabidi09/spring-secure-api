@@ -112,18 +112,20 @@ fvg:                      # retest de Fair Value Gap (ICT / BPR)
   rr_ratio: 2.0
   max_age: 120
 
-trendline:                # cassure de trendline multi-timeframe (detection htf, exec bas TF)
+trendline:                # trendline multi-TF — MEILLEUR CANDIDAT (exec M5, detection htf M120=2h)
+  # Vrai MNQ futures : robustesse 60% (+239 median), holdout +36 PF 1.03 (26 tr), MDD 570.
+  # Edge REEL mais MARGINAL (PF ~1.03 hors-echantillon) -> forward-test demo avant tout capital.
   exec_minutes: 5
-  htf_minutes: 30
+  htf_minutes: 120
   pivot_lookback: 4
-  min_touches: 3
-  tol_atr: 0.6
-  break_margin_atr: 0.1
-  require_retest: true
+  min_touches: 2
+  tol_atr: 0.71
+  break_margin_atr: 0.10
+  require_retest: false
   retest_window: 20
   atr_period: 14
-  atr_stop_mult: 1.5
-  rr_ratio: 2.0
+  atr_stop_mult: 2.02
+  rr_ratio: 2.95
 
 gex:
   enabled: true
