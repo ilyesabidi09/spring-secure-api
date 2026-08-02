@@ -54,3 +54,5 @@ tlcombos*.py
 tlval*.log
 tlval*.py
 tlval_*.json
+tlhi*.log
+tlhi*.py
