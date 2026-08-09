@@ -304,8 +304,13 @@ def matches(listing: Listing, c: Criteria) -> bool:
             if token not in haystack:
                 return False
 
-    if not _range_ok(listing.rooms, c.rooms_min, c.rooms_max, ku):
-        return False
+    if c.rooms_min is not None or c.rooms_max is not None:
+        candidates = listing.rooms_choices or ([listing.rooms] if listing.rooms else [])
+        if not candidates:
+            if not ku:
+                return False
+        elif not any(_range_ok(r, c.rooms_min, c.rooms_max, False) for r in candidates):
+            return False
     if not _range_ok(listing.surface, c.surface_min, c.surface_max, ku):
         return False
     if not _range_ok(listing.price, c.price_min, c.price_max, ku):

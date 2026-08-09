@@ -166,6 +166,18 @@ class TestMatching(unittest.TestCase):
         self.assertTrue(matches(listing, Criteria.from_params({"surface_min": "80"})))
         self.assertFalse(matches(listing, Criteria.from_params({"surface_min": "90"})))
 
+    def test_programme_matches_any_typology_it_sells(self):
+        programme = flat(rooms=4, rooms_choices=[1, 2, 3, 4, 5])
+        for wanted in ("1", "3", "5"):
+            self.assertTrue(matches(programme, Criteria.from_params({"rooms_min": wanted, "rooms_max": wanted})),
+                            f"T{wanted} devrait matcher")
+        self.assertFalse(matches(programme, Criteria.from_params({"rooms_min": "6"})))
+
+    def test_single_flat_still_uses_rooms(self):
+        sale = flat(kind=KIND_ANCIEN, rooms=3, rooms_choices=[])
+        self.assertTrue(matches(sale, Criteria.from_params({"rooms_min": "3", "rooms_max": "3"})))
+        self.assertFalse(matches(sale, Criteria.from_params({"rooms_min": "4"})))
+
     def test_eur_m2_filter(self):
         listing = flat(price=410_000, surface=82.0)   # exactly 5000
         self.assertTrue(matches(listing, Criteria.from_params({"eur_m2_max": "5300"})))

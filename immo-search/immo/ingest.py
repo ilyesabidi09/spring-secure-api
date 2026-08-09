@@ -85,17 +85,21 @@ def load_vefa_csv(path: Path) -> list[Listing]:
             available = (row.get("lot_available") or "").strip().lower()
             listing.available = {"oui": True, "non": False}.get(available)
 
+            typologies = [
+                int(t) for t in (row.get("typologies") or "").split("/") if t.isdigit()
+            ]
+            listing.rooms_choices = typologies
+
             lot_price, lot_area = _f(row, "lot_price"), _f(row, "lot_area")
             if lot_price and lot_area:
+                # The pipeline only pairs price with surface on the T4 tier, so
+                # these two belong to a 4-room flat and nothing else.
                 listing.price, listing.surface = lot_price, lot_area
-                listing.rooms = 4  # the pipeline only pairs lots on the T4 tier
+                listing.rooms = 4
                 listing.surface_is_carrez = True
             else:
                 listing.price = _f(row, "price_t4_min") or _f(row, "price_program_min")
                 listing.surface = _f(row, "area_t4_min")
-                typologies = [
-                    int(t) for t in (row.get("typologies") or "").split("/") if t.isdigit()
-                ]
                 listing.rooms = 4 if 4 in typologies else (typologies[-1] if typologies else None)
 
             delivery = (row.get("delivery") or "").strip()

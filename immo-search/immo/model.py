@@ -87,6 +87,11 @@ class Listing:
     address_precision: str = ""   # housenumber | street | municipality | source
 
     rooms: int | None = None
+    # A VEFA programme is not one flat: it markets several typologies at once.
+    # ``rooms`` is the tier the price and surface belong to; ``rooms_choices``
+    # is everything the programme offers, so a "T4" search finds a programme
+    # selling T1 to T5 instead of only those whose headline tier happens to be 4.
+    rooms_choices: list[int] = field(default_factory=list)
     surface: float | None = None          # Carrez when the source gives it
     surface_is_carrez: bool = False
     price: float | None = None

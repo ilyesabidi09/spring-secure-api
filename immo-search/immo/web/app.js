@@ -126,7 +126,12 @@
 
   function statBadge(l) {
     const facts = [];
-    if (l.rooms) facts.push(`<span class="fact">T${l.rooms}</span>`);
+    const choices = l.rooms_choices || [];
+    if (choices.length > 1) {
+      facts.push(`<span class="fact">T${Math.min(...choices)}–T${Math.max(...choices)}</span>`);
+    } else if (l.rooms) {
+      facts.push(`<span class="fact">T${l.rooms}</span>`);
+    }
     if (l.surface) facts.push(`<span class="fact${l.surface_is_carrez ? " good" : ""}">${area(l.surface)}${l.surface_is_carrez ? " Carrez" : ""}</span>`);
     else facts.push(`<span class="fact unknown">surface ?</span>`);
     if (l.zone_abc) facts.push(`<span class="fact">zone ${esc(l.zone_abc)}</span>`);
