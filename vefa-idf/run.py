@@ -223,7 +223,6 @@ def evaluate(prog: Program) -> dict:
         "eur_m2": None if eur is None else eur <= MAX_EUR_M2,
         "rer": None if prog.walk_m is None else prog.walk_m <= MAX_WALK_M,
         "livraison": in_delivery_window(prog.delivery_year, prog.delivery_quarter),
-        "ptz": True if "PTZ" in prog.fiscal else None,
     }
 
 
@@ -267,6 +266,10 @@ def stage_output(programs: list[Program]) -> None:
         row["fails"] = "/".join(k for k, v in verdict.items() if v is False)
         row["unknown"] = "/".join(k for k, v in verdict.items() if v is None)
         row["retenu"] = "oui" if all(v is True for v in verdict.values()) else "non"
+        # PTZ is reported, not filtered on: since the 2025 reform the loan
+        # covers new-build flats in every zone, so a page that simply does not
+        # print the acronym is not evidence of ineligibility.
+        row["ok_ptz"] = "oui" if "PTZ" in prog.fiscal else "non mentionné"
         rows.append(row)
 
     columns = [

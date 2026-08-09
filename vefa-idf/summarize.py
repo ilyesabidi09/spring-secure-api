@@ -14,11 +14,10 @@ import sys
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parent / "out"
-CRITERIA = ["t4", "zone", "surface", "prix", "eur_m2", "rer", "livraison", "ptz"]
+CRITERIA = ["t4", "zone", "surface", "prix", "eur_m2", "rer", "livraison"]
 LABEL = {
     "t4": "T4", "zone": "zone A/Abis", "surface": "≥80 m²", "prix": "≤425 k€",
     "eur_m2": "≤5300 €/m²", "rer": "≤450 m RER", "livraison": "livr. T4-27→29",
-    "ptz": "PTZ",
 }
 
 
@@ -40,8 +39,10 @@ def fmt_money(v):
 
 def line(row: dict) -> str:
     eur = num(row, "eur_per_m2")
-    price = num(row, "price_t4_or_program")
-    area = num(row, "area_t4_min")
+    # Show the pair the €/m² was actually computed from, so the arithmetic in
+    # each row checks out.
+    price = num(row, "lot_price") or num(row, "price_t4_or_program")
+    area = num(row, "lot_area") or num(row, "area_t4_min")
     walk = num(row, "walk_m")
     return (
         f"{(row['name'] or '?')[:34]:36s} {(row['city'] or '?')[:20]:22s} "

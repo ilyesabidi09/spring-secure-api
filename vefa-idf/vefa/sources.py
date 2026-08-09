@@ -74,11 +74,18 @@ class Explorimmoneuf:
         candidates = payload.objects_with("programName", "location")
         if not candidates:
             return []
-        # The page's own program is the one carrying accommodations.
-        node = max(
-            candidates,
-            key=lambda n: len(n.get("accommodations") or []),
-        )
+        # Detail pages also embed the "similar programmes" cards, so pick the
+        # node whose id matches /programme/detail-<id>; fall back to the one
+        # carrying the most lots only when the URL gives us nothing.
+        node = None
+        m = re.search(r"/programme/detail-(\d+)", url)
+        if m:
+            wanted = m.group(1)
+            node = next(
+                (n for n in candidates if str(n.get("id") or "") == wanted), None
+            )
+        if node is None:
+            node = max(candidates, key=lambda n: len(n.get("accommodations") or []))
 
         loc = node.get("location") or {}
         coords = loc.get("coordinates") or {}
