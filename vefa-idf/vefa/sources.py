@@ -276,31 +276,58 @@ class Sogeprom:
             {u for u in _sitemap_locs(xml) if "/residences/ile-de-france/" in u}
         )
 
+    # Every residence page also carries the full Île-de-France catalogue, one
+    # entry per residence: "Orly 94 Barbara 8 appartements du T1 au T5
+    # Livraison 3 ème trimestre 2027 * à partir de 179 666 €".
+    CATALOGUE = re.compile(
+        r"([A-ZÀ-Ö][\w'’\-]*(?:[ \-][A-Za-zÀ-ÿ'’\-]+){0,4})\s+(75|77|78|91|92|93|94|95)\s+"
+        r"(.{2,45}?)\s+(\d{1,3})\s+appartements?\s+"
+        r"(du\s+T[1-6]\s+au\s+T[1-6]|T[1-6])\s+"
+        r"Livraison\s+(\d)\s*(?:er|ère|ème|eme|e)?\s*trimestre\s+(\d{4})\s*\*?\s*"
+        r"[àa]\s*partir\s*de\s*([\d\s  ]{5,12})\s*€"
+    )
+
     def parse(self, ctx: Context, url: str, html: str) -> list[Program]:
         text = to_text(html)
-        node = json_ld_of_type(html, "Product") or {}
-        prog = Program(source=self.name, url=url, developer="Sogeprom")
-        prog.name = (node.get("name") or "").strip()
-        if not prog.name:
-            m = re.search(r"<h1[^>]*>(.*?)</h1>", html, re.S | re.I)
-            prog.name = to_text(m.group(1)) if m else ""
+        out: list[Program] = []
 
-        m = re.search(r"\b(\d{5})\b", text)
+        # The page's own residence: name from <h1>, address and delivery from
+        # the header block (its price is not shown there).
+        focal = Program(source=self.name, url=url, developer="Sogeprom")
+        m = re.search(r"<h1[^>]*>(.*?)</h1>", html, re.S | re.I)
+        focal.name = to_text(m.group(1)) if m else ""
+        m = re.search(
+            r"([\w'’\-][^,]{4,60}?)\s+(\d{5})\s+([A-ZÀ-Ö][A-Za-zÀ-ÿ'’\- ]{2,35}?)\s+Livraison",
+            text,
+        )
         if m:
-            prog.postcode = m.group(1)
-            prog.dept = prog.postcode[:2]
-        m = re.search(r"([A-ZÀ-Ü][A-Za-zÀ-ÿ'\- ]{2,35})\s+(75|77|78|91|92|93|94|95)\b", text)
-        if m:
-            prog.city = m.group(1).strip()
-            prog.dept = prog.dept or m.group(2)
+            focal.address, focal.postcode = m.group(1).strip(), m.group(2)
+            focal.city, focal.dept = m.group(3).strip(), m.group(2)[:2]
+        head = text[: m.end() + 200] if m else text[:1200]
+        focal.delivery_quarter, focal.delivery_year = parse_quarter(head)
+        focal.fiscal = detect_fiscal(head)
+        focal.typologies = _typologies_from_text(head)
+        focal.notes = "prix non affiché sur la fiche"
+        if focal.name:
+            out.append(focal)
 
-        m = re.search(r"[àa]\s*partir\s*de\s*([\d\s  ]{5,12})\s*€", text, re.I)
-        if m:
-            prog.price_program_min = clean_number(m.group(1))
-        prog.delivery_quarter, prog.delivery_year = parse_quarter(text)
-        prog.fiscal = detect_fiscal(text[:8000])
-        prog.typologies = _typologies_from_text(text)
-        return [prog] if prog.name else []
+        seen: set[tuple] = set()
+        for m in self.CATALOGUE.finditer(text):
+            city, dept, name, _units, typo, quarter, year, price = m.groups()
+            key = (name.strip().lower(), city.strip().lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            prog = Program(source=self.name, url=url, developer="Sogeprom")
+            prog.name = name.strip(" -–•·")
+            prog.city = _clean_city(city)
+            prog.dept = dept
+            prog.price_program_min = clean_number(price)
+            prog.typologies = _typologies_from_text(typo)
+            prog.delivery_quarter, prog.delivery_year = int(quarter), int(year)
+            prog.fiscal = detect_fiscal(text[max(0, m.start() - 400): m.end() + 400])
+            out.append(prog)
+        return out
 
 
 # ---------------------------------------------------------------------------
@@ -601,13 +628,16 @@ def _public_plan_link(html: str) -> str:
 
 _BADGE_PREFIX = re.compile(
     r"^(?:\s*(?:PTZ|LMNP|LLI|BRS|ANRU|TVA(?:\s*(?:r[ée]duite|5[,.]5\s*%?|7\s*%?))?"
-    r"|Jeanbrun|Pinel|Maison\s*\+\s*Terrain|Nouveaut[ée])\b[\s,]*)+",
+    r"|Jeanbrun|Pinel|Maison\s*\+\s*Terrain|Nouveaut[ée]"
+    r"|Offre\s+en\s+cours|Commercialisation\s+en\s+cours|Travaux\s+en\s+cours"
+    r"|En\s+travaux|Livr[ée]e?s?|Derni[èe]res?\s+opportunit[ée]s"
+    r"|Avant[- ]Premi[èe]re|[ÀA]\s+d[ée]couvrir)\b[\s,:–-]*)+",
     re.I,
 )
 
 
 def _clean_city(raw: str) -> str:
-    """Listing badges sit in the same uppercase run as the city name."""
+    """Status chips and fiscal badges sit in the same run as the city name."""
     return _BADGE_PREFIX.sub("", raw or "").strip(" -•·|").title()
 
 
