@@ -396,7 +396,10 @@ class Coteneuf:
             if "/programmes-immobiliers-neufs/" not in url:
                 continue
             slug = url.rstrip("/").rsplit("/", 1)[-1]
-            if any(slug.endswith("-" + c) or c in slug for c in self.idf_city_slugs):
+            # The commune is the slug's suffix ("109-paris-epinay-sur-seine").
+            # Substring matching would be wrong here: Val-d'Oise has a commune
+            # called "Us", which appears inside "toulouse".
+            if _suffix_in(slug, self.idf_city_slugs):
                 out.append(url)
         return sorted(set(out))
 
@@ -534,6 +537,16 @@ class Diagonale:
 # otherwise cut "L'HAŸ-LES-ROSES" in half.
 _UPPER = "A-ZÀ-ÖØ-ÞŸŒÆ"
 _CITY_BOUNDARY = re.compile(rf"([{_UPPER}][{_UPPER}'’\- ]{{2,40}}?)\s*\(\s*(\d{{2}})\s*\)")
+
+
+def _suffix_in(slug: str, names: set[str]) -> bool:
+    """True when some trailing run of ``slug``'s '-' parts is a known commune."""
+    parts = slug.split("-")
+    # Communes run up to ~6 tokens ("saint-germain-en-laye", "l-hay-les-roses").
+    for start in range(max(0, len(parts) - 7), len(parts)):
+        if "-".join(parts[start:]) in names:
+            return True
+    return False
 
 
 _PLAN_ASSET = re.compile(
