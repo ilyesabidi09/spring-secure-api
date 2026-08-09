@@ -47,8 +47,8 @@
     }
   },
   "http": {
-    "cache": 3783,
-    "network": 3,
+    "cache": 3786,
+    "network": 0,
     "robots_denied": 0,
     "errors": 23
   }
