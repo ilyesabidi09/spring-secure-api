@@ -19,10 +19,34 @@ un autre prix affiché ne dit rien du marché.
 
 ## Démarrage
 
+`data/` n'est pas versionné (l'index pèse des centaines de Mo et se
+reconstruit). **Il faut donc le bâtir une fois avant de lancer le serveur :**
+
 ```bash
-python3 build_index.py --dvf-depts 94 93 --dvf-years 2024 2025 --walk
-python3 cli.py serve                 # http://127.0.0.1:8000
-python3 -m unittest discover -s tests
+cd immo-search
+
+# 1. Construire l'index. Une fois suffit ; il est réutilisé ensuite.
+python3 build_index.py --dvf-depts 94 93 --dvf-years 2024   # léger, ~40 s
+python3 cli.py serve                                        # http://127.0.0.1:8000
+```
+
+Le volet « neuf » est repris de `../vefa-idf/out/vefa_idf_full.csv`, produit par
+le pipeline voisin. Sans ce fichier l'index ne contient que des ventes DVF, et
+`build_index.py` l'annonce (`0 programmes`) au lieu d'échouer.
+
+Coût selon l'étendue demandée, mesuré sur cette machine :
+
+| Étendue | Index | Démarrage | RAM |
+|---|---|---|---|
+| 1 département, 1 année | ~14 Mo | ~2 s | ~150 Mo |
+| 8 départements, 2 années | ~278 Mo | ~25 s | ~1,2 Go |
+
+Le serveur charge tout en mémoire au démarrage : sur l'index complet il ne
+répond qu'au bout d'une vingtaine de secondes. Les recherches sont ensuite
+instantanées (~120 ms, ~260 ms avec les facettes). Commencez petit.
+
+```bash
+python3 -m unittest discover -s tests     # 61 tests
 ```
 
 Aucune dépendance : bibliothèque standard uniquement, serveur compris.
