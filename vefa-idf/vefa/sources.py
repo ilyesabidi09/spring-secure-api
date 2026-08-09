@@ -212,10 +212,21 @@ class Bouygues:
         if prog.postcode:
             prog.dept = prog.postcode[:2]
 
-        prog.delivery_quarter, prog.delivery_year = parse_quarter(text)
+        # The page also lists neighbouring programmes, so typology and delivery
+        # are read from the focal programme's own header block — the run that
+        # holds its address, delivery date and price range — not the whole page.
+        header = text
+        if prog.postcode:
+            start = text.find(prog.postcode)
+            if start >= 0:
+                header = text[start: start + 320]
+        prog.delivery_quarter, prog.delivery_year = parse_quarter(header)
+        prog.typologies = _typologies_from_text(header)
         prog.fiscal = detect_fiscal(text[:8000])
-        prog.typologies = _typologies_from_text(text)
-        prog.notes = "prix = fourchette programme (lots non publics : /ajax/get_program_lots/ interdit par robots.txt)"
+        prog.notes = (
+            "prix = fourchette programme ; lots non collectés "
+            "(/ajax/get_program_lots/ interdit par robots.txt)"
+        )
         return [prog] if prog.name else []
 
 
@@ -458,6 +469,15 @@ class Coteneuf:
         if m:
             prog.postcode = m.group(1)
             prog.dept = prog.postcode[:2]
+        # The commune is the trailing run of the URL slug.
+        slug = url.rstrip("/").rsplit("/", 1)[-1]
+        if self.idf_city_slugs:
+            parts = slug.split("-")
+            for start in range(max(0, len(parts) - 7), len(parts)):
+                candidate = "-".join(parts[start:])
+                if candidate in self.idf_city_slugs:
+                    prog.city = candidate.replace("-", " ").title()
+                    break
         m = re.search(r"[ÀA]\s*partir de\s*([\d\s  ]{5,12})\s*€", text)
         if m:
             prog.price_program_min = clean_number(m.group(1))
