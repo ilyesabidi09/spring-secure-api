@@ -1,0 +1,55 @@
+{
+  "sources": {
+    "explorimmoneuf": {
+      "urls": 1011,
+      "programs": 1011,
+      "robots_denied": 0
+    },
+    "bouygues": {
+      "urls": 144,
+      "programs": 101,
+      "robots_denied": 0
+    },
+    "kaufman-broad": {
+      "urls": 60,
+      "programs": 55,
+      "robots_denied": 0
+    },
+    "sogeprom": {
+      "urls": 17,
+      "programs": 13,
+      "robots_denied": 0
+    },
+    "nexity": {
+      "urls": 35,
+      "programs": 204,
+      "robots_denied": 0
+    },
+    "vinci": {
+      "urls": 72,
+      "programs": 74,
+      "robots_denied": 0
+    },
+    "diagonale": {
+      "urls": 14,
+      "programs": 0,
+      "robots_denied": 0
+    },
+    "trouver-un-logement-neuf": {
+      "urls": 631,
+      "programs": 608,
+      "robots_denied": 0
+    },
+    "coteneuf": {
+      "urls": 1716,
+      "programs": 1716,
+      "robots_denied": 0
+    }
+  },
+  "http": {
+    "cache": 340,
+    "network": 3930,
+    "robots_denied": 0,
+    "errors": 26
+  }
+}
