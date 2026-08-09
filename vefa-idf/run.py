@@ -227,8 +227,36 @@ def evaluate(prog: Program) -> dict:
     }
 
 
+def deduplicate(programs: list[Program]) -> list[Program]:
+    """Collapse repeats of the same programme within a source.
+
+    The same programme is reachable from several listing pages, and aggregators
+    republish it under slightly different URLs. Keep whichever copy carries the
+    most usable facts.
+    """
+    def richness(prog: Program) -> tuple:
+        return (
+            prog.eur_per_m2() is not None,
+            prog.lot_count_t4,
+            prog.walk_m is not None,
+            bool(prog.delivery_year),
+            bool(prog.lat),
+        )
+
+    best: dict[tuple, Program] = {}
+    for prog in programs:
+        key = (prog.source, slugify(prog.name), slugify(prog.city))
+        current = best.get(key)
+        if current is None or richness(prog) > richness(current):
+            best[key] = prog
+    return list(best.values())
+
+
 def stage_output(programs: list[Program]) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
+    before = len(programs)
+    programs = deduplicate(programs)
+    print(f"\ndédoublonnage: {before} -> {len(programs)} programmes")
     rows = []
     for prog in programs:
         verdict = evaluate(prog)
@@ -243,11 +271,13 @@ def stage_output(programs: list[Program]) -> None:
 
     columns = [
         "retenu", "eur_per_m2", "name", "city", "postcode", "zone_abc", "developer",
-        "source", "price_t4_min", "price_program_min", "price_program_max",
-        "price_t4_or_program", "area_t4_min", "area_program_min", "area_program_max",
-        "typologies", "delivery", "fiscal", "kitchen_hint", "station_name",
-        "station_line", "walk_m", "walk_min", "address", "lat", "lon",
-        "geocode_precision", "fails", "unknown", "notes", "url",
+        "source", "lot_price", "lot_area", "lot_floor", "lot_exposure",
+        "lot_available", "lot_count_t4", "price_t4_min", "price_t4_max",
+        "price_program_min", "price_program_max", "price_t4_or_program",
+        "area_t4_min", "area_t4_max", "area_program_min", "area_program_max",
+        "typologies", "delivery", "fiscal", "kitchen_hint", "plan_url",
+        "station_name", "station_line", "walk_m", "walk_min", "address",
+        "lat", "lon", "geocode_precision", "fails", "unknown", "notes", "url",
     ]
     columns += [c for c in rows[0].keys() if c not in columns] if rows else []
 

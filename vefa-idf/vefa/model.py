@@ -57,19 +57,45 @@ class Program:
     walk_min: float | None = None
     geocode_precision: str = ""
 
+    # The single T4 lot the €/m² is computed from. Price and surface here
+    # always come from the same lot, so the ratio describes something real.
+    lot_price: float | None = None
+    lot_area: float | None = None
+    lot_floor: str = ""
+    lot_exposure: str = ""
+    lot_available: str = ""
+    lot_count_t4: int = 0
+
+    def set_best_t4_lot(self, lots: list[dict]) -> None:
+        """Pick the T4 lot that best fits the brief: both figures published,
+        surface at or above the target, cheapest per m². Falls back to the
+        cheapest complete lot when none reaches the target surface."""
+        self.lot_count_t4 = len(lots)
+        complete = [l for l in lots if l.get("price") and l.get("area")]
+        if not complete:
+            return
+        available = [l for l in complete if l.get("available")] or complete
+        big = [l for l in available if l["area"] >= 80.0] or available
+        best = min(big, key=lambda l: l["price"] / l["area"])
+        self.lot_price = best["price"]
+        self.lot_area = best["area"]
+        self.lot_floor = str(best.get("floor") or "")
+        self.lot_exposure = str(best.get("exposure") or "")
+        self.lot_available = "oui" if best.get("available") else "non"
+
     def has_t4(self) -> bool:
         return 4 in self.typologies
 
     def price_for_t4(self) -> float | None:
-        return self.price_t4_min
+        return self.lot_price if self.lot_price else self.price_t4_min
 
     def area_for_t4(self) -> float | None:
-        return self.area_t4_min
+        return self.lot_area if self.lot_area else self.area_t4_min
 
     def eur_per_m2(self) -> float | None:
-        price, area = self.price_for_t4(), self.area_for_t4()
-        if price and area and area > 0:
-            return price / area
+        """Only computed from a matched price/surface pair on one lot."""
+        if self.lot_price and self.lot_area and self.lot_area > 0:
+            return self.lot_price / self.lot_area
         return None
 
     def delivery_label(self) -> str:

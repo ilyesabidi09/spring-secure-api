@@ -106,6 +106,11 @@ class Explorimmoneuf:
         laws = node.get("investmentLaws") or []
         prog.fiscal = detect_fiscal(" ".join(map(str, laws)) + " " + text[:6000])
 
+        # ``accommodations`` is sometimes one entry per typology and sometimes
+        # one entry per lot. Either way, price and surface must be read off the
+        # *same* entry: pairing the cheapest lot's price with another lot's
+        # surface would invent a €/m² that no lot actually offers.
+        t4_lots: list[dict] = []
         for acc in node.get("accommodations") or []:
             rooms = acc.get("roomCount")
             if not rooms:
@@ -113,18 +118,32 @@ class Explorimmoneuf:
             prog.typologies.append(int(rooms))
             if int(rooms) != 4:
                 continue
-            price = (acc.get("priceMin") or acc.get("price") or 0) or None
+            price = (acc.get("price") or acc.get("priceMin") or 0) or None
             area = (acc.get("area") or acc.get("areaMin") or 0) or None
-            if price:
-                prog.price_t4_min = min(filter(None, [prog.price_t4_min, price]))
-            hi = (acc.get("priceMax") or 0) or None
-            if hi:
-                prog.price_t4_max = max(filter(None, [prog.price_t4_max or 0, hi]))
-            if area:
-                prog.area_t4_min = min(filter(None, [prog.area_t4_min, area]))
-            hi_area = (acc.get("areaMax") or 0) or None
-            if hi_area:
-                prog.area_t4_max = max(filter(None, [prog.area_t4_max or 0, hi_area]))
+            t4_lots.append(
+                {
+                    "price": price,
+                    "area": area,
+                    "available": bool(acc.get("isAvailable")),
+                    "floor": acc.get("floor"),
+                    "exposure": acc.get("exposure"),
+                }
+            )
+
+        if t4_lots:
+            prog.price_t4_min = min(
+                (l["price"] for l in t4_lots if l["price"]), default=None
+            )
+            prog.price_t4_max = max(
+                (l["price"] for l in t4_lots if l["price"]), default=None
+            )
+            prog.area_t4_min = min(
+                (l["area"] for l in t4_lots if l["area"]), default=None
+            )
+            prog.area_t4_max = max(
+                (l["area"] for l in t4_lots if l["area"]), default=None
+            )
+            prog.set_best_t4_lot(t4_lots)
 
         if not prog.typologies:
             lo, hi = node.get("roomCountMin") or 0, node.get("roomCountMax") or 0
@@ -419,20 +438,36 @@ class Coteneuf:
         prog.fiscal = detect_fiscal(text[:8000])
         prog.typologies = _typologies_from_text(text)
 
-        # Lot rows: "Lot B502 Surface 70.7 m² Étage 5 ... À partir de 319 243 €"
-        for m in re.finditer(
-            r"Lot\s+\S+\s+Surface\s+([\d.,]+)\s*m²(.{0,120}?)([\d\s  ]{6,12})\s*€", text
-        ):
-            area = clean_number(m.group(1))
-            price = clean_number(m.group(3))
-            if not area or not price or price < 50000:
-                continue
-            # A 4-room flat is inferred from the surface bracket only when the
-            # page states the typology in the same block.
-            block = m.group(0)
-            if re.search(r"\bT4\b|4 pi[èe]ces", block):
-                prog.area_t4_min = min(filter(None, [prog.area_t4_min, area]))
-                prog.price_t4_min = min(filter(None, [prog.price_t4_min, price]))
+        # The lot table is grouped per typology: "Appartements neuf T4 … Lot
+        # B502 Surface 70.7 m² Étage 5 Exposition E Prix À partir de 319 243 €".
+        # Most prices are masked as "XXX €"; only the published ones are kept.
+        t4_lots: list[dict] = []
+        section = re.search(
+            r"Appartements?\s+neufs?\s+T4\b(.*?)(?=Appartements?\s+neufs?\s+T[1-6]\b|Ressources|$)",
+            text,
+            re.S,
+        )
+        if section:
+            for m in re.finditer(
+                r"Lot\s+(\S+)\s+Surface\s+([\d.,]+)\s*m²\s*(?:Étage\s*(\S+))?"
+                r"\s*(?:Exposition\s*(\S+))?.{0,40}?Prix.{0,30}?([\d\s  ]{6,12})\s*€",
+                section.group(1),
+            ):
+                area = clean_number(m.group(2))
+                price = clean_number(m.group(5))
+                if not area or not price or price < 50_000:
+                    continue
+                t4_lots.append(
+                    {
+                        "price": price, "area": area, "available": True,
+                        "floor": m.group(3), "exposure": m.group(4),
+                    }
+                )
+        if t4_lots:
+            prog.typologies = sorted(set(prog.typologies) | {4})
+            prog.price_t4_min = min(l["price"] for l in t4_lots)
+            prog.area_t4_min = min(l["area"] for l in t4_lots)
+            prog.set_best_t4_lot(t4_lots)
         return [prog] if prog.name else []
 
 
