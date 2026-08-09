@@ -1,0 +1,4 @@
+# Crawl cache: large, regenerable, and site-owned content.
+.cache/
+__pycache__/
+*.pyc
