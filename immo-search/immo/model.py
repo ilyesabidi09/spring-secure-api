@@ -53,7 +53,7 @@ def detect_features(text: str) -> list[str]:
     return [name for name, pattern in FEATURE_PATTERNS.items() if re.search(pattern, low)]
 
 
-@dataclass
+@dataclass(slots=True)
 class Station:
     name: str
     mode: str          # RER, METRO, TRAIN, TRAM
@@ -66,7 +66,7 @@ class Station:
         return asdict(self)
 
 
-@dataclass
+@dataclass(slots=True)
 class Listing:
     id: str
     kind: str

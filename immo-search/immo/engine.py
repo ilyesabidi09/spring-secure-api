@@ -10,7 +10,7 @@ were also applied to itself.
 from __future__ import annotations
 
 import statistics
-from dataclasses import replace
+from dataclasses import fields as dc_fields, replace
 
 from .criteria import SORTS, Criteria, matches
 from .model import Listing, slugify
@@ -25,6 +25,14 @@ def _facet_values(listing: Listing, name: str) -> list[str]:
         return [str(listing.rooms)] if listing.rooms else []
     value = getattr(listing, name, "") or ""
     return [str(value)] if value else []
+
+
+def _signature(c: Criteria) -> tuple:
+    """A hashable identity for criteria, so identical passes can be shared."""
+    return tuple(
+        tuple(v) if isinstance(v, list) else v
+        for v in (getattr(c, f.name) for f in dc_fields(c))
+    )
 
 
 def _without(c: Criteria, name: str) -> Criteria:
@@ -79,20 +87,38 @@ class Index:
     # ---------------------------------------------------------------- facets
 
     def facets(self, c: Criteria, limit: int = 40) -> dict:
-        out: dict[str, list[dict]] = {}
+        """Counts per facet, each ignoring its own filter.
+
+        Neutralising a filter that is not set leaves the criteria unchanged, so
+        all such facets share one matching pass. Only the handful of facets
+        whose own filter is active need a pass of their own — on a large index
+        that is the difference between eight scans and typically one.
+        """
+        groups: dict[tuple, list[str]] = {}
         for name in FACET_FIELDS:
             base = _without(c, name)
-            counts: dict[str, int] = {}
+            key = _signature(base)
+            groups.setdefault(key, []).append(name)
+
+        out: dict[str, list[dict]] = {}
+        for names in groups.values():
+            base = _without(c, names[0])
+            counts: dict[str, dict[str, int]] = {name: {} for name in names}
             for listing in self.listings:
                 if not matches(listing, base):
                     continue
-                for value in _facet_values(listing, name):
-                    counts[value] = counts.get(value, 0) + 1
-            ordered = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:limit]
-            out[name] = [
-                {"value": v, "count": n, "slug": slugify(v)} for v, n in ordered
-            ]
-        return out
+                for name in names:
+                    bucket = counts[name]
+                    for value in _facet_values(listing, name):
+                        bucket[value] = bucket.get(value, 0) + 1
+            for name in names:
+                ordered = sorted(
+                    counts[name].items(), key=lambda kv: (-kv[1], kv[0])
+                )[:limit]
+                out[name] = [
+                    {"value": v, "count": n, "slug": slugify(v)} for v, n in ordered
+                ]
+        return {name: out[name] for name in FACET_FIELDS}
 
     # ----------------------------------------------------------------- stats
 
