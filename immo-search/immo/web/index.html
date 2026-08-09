@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Immo Search — Île-de-France</title>
+<link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏙️</text></svg>">
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar" id="sidebar">
+    <header class="brand">
+      <div class="mark">IS</div>
+      <div>
+        <h1>Immo Search</h1>
+        <p id="brandMeta">chargement…</p>
+      </div>
+    </header>
+
+    <form id="filters" autocomplete="off">
+      <section class="grp">
+        <label class="lbl" for="q">Recherche</label>
+        <input type="search" id="q" name="q" placeholder="programme, ville, rue, promoteur…">
+      </section>
+
+      <section class="grp">
+        <div class="lbl">Type de bien</div>
+        <div class="seg" role="group">
+          <input type="radio" name="kind" id="kAll" value="" checked><label for="kAll">Tout</label>
+          <input type="radio" name="kind" id="kNeuf" value="neuf"><label for="kNeuf">Neuf en vente</label>
+          <input type="radio" name="kind" id="kAncien" value="ancien"><label for="kAncien">Ancien vendu</label>
+        </div>
+        <p class="hint" id="kindHint">Le neuf est un prix demandé aujourd'hui. L'ancien est un prix de vente réellement enregistré (DVF).</p>
+      </section>
+
+      <section class="grp">
+        <div class="lbl">Pièces</div>
+        <div class="chips" id="roomChips">
+          <button type="button" class="chip" data-rooms="1">T1</button>
+          <button type="button" class="chip" data-rooms="2">T2</button>
+          <button type="button" class="chip" data-rooms="3">T3</button>
+          <button type="button" class="chip" data-rooms="4">T4</button>
+          <button type="button" class="chip" data-rooms="5">T5+</button>
+        </div>
+      </section>
+
+      <section class="grp two">
+        <div><label class="lbl" for="surface_min">Surface min</label>
+          <div class="unit"><input type="number" id="surface_min" name="surface_min" min="0" step="1" placeholder="80"><span>m²</span></div></div>
+        <div><label class="lbl" for="surface_max">Surface max</label>
+          <div class="unit"><input type="number" id="surface_max" name="surface_max" min="0" step="1" placeholder="—"><span>m²</span></div></div>
+      </section>
+
+      <section class="grp two">
+        <div><label class="lbl" for="price_min">Prix min</label>
+          <div class="unit"><input type="number" id="price_min" name="price_min" min="0" step="1000" placeholder="—"><span>€</span></div></div>
+        <div><label class="lbl" for="price_max">Prix max</label>
+          <div class="unit"><input type="number" id="price_max" name="price_max" min="0" step="1000" placeholder="425000"><span>€</span></div></div>
+      </section>
+
+      <section class="grp two">
+        <div><label class="lbl" for="eur_m2_min">€/m² min</label>
+          <div class="unit"><input type="number" id="eur_m2_min" name="eur_m2_min" min="0" step="50" placeholder="—"><span>€</span></div></div>
+        <div><label class="lbl" for="eur_m2_max">€/m² max</label>
+          <div class="unit"><input type="number" id="eur_m2_max" name="eur_m2_max" min="0" step="50" placeholder="5300"><span>€</span></div></div>
+      </section>
+
+      <details class="grp acc" open>
+        <summary>Transport</summary>
+        <div class="lbl">Mode</div>
+        <div class="chips" id="modeChips">
+          <button type="button" class="chip" data-mode="RER">RER</button>
+          <button type="button" class="chip" data-mode="METRO">Métro</button>
+          <button type="button" class="chip" data-mode="TRAIN">Transilien</button>
+          <button type="button" class="chip" data-mode="TRAM">Tram</button>
+        </div>
+        <label class="lbl" for="line">Ligne</label>
+        <input type="text" id="line" name="line" placeholder="A, E, 14…">
+        <label class="lbl" for="walk_max_m">Distance à pied max <span class="tag">neuf</span></label>
+        <div class="unit"><input type="number" id="walk_max_m" name="walk_max_m" min="0" step="50" placeholder="450"><span>m</span></div>
+        <label class="lbl" for="crow_max_m">Distance à vol d'oiseau max</label>
+        <div class="unit"><input type="number" id="crow_max_m" name="crow_max_m" min="0" step="50" placeholder="—"><span>m</span></div>
+        <p class="hint">Le trajet piéton réel n'est mesuré que pour le neuf. Pour les ventes DVF, seule la distance à vol d'oiseau est disponible.</p>
+      </details>
+
+      <details class="grp acc">
+        <summary>Localisation</summary>
+        <div class="lbl">Zonage ABC</div>
+        <div class="chips" id="zoneChips">
+          <button type="button" class="chip" data-zone="abis">A bis</button>
+          <button type="button" class="chip" data-zone="a">A</button>
+          <button type="button" class="chip" data-zone="b1">B1</button>
+          <button type="button" class="chip" data-zone="b2">B2</button>
+        </div>
+        <div class="lbl">Département</div>
+        <div class="chips" id="deptChips"></div>
+        <label class="lbl" for="city">Commune</label>
+        <input type="text" id="city" name="city" placeholder="creteil, massy…">
+      </details>
+
+      <details class="grp acc">
+        <summary>Neuf : livraison &amp; fiscalité</summary>
+        <div class="two">
+          <div><label class="lbl" for="delivery_from">Livraison de</label>
+            <input type="text" id="delivery_from" name="delivery_from" placeholder="T4 2027"></div>
+          <div><label class="lbl" for="delivery_to">à</label>
+            <input type="text" id="delivery_to" name="delivery_to" placeholder="2029"></div>
+        </div>
+        <div class="lbl">Dispositifs</div>
+        <div class="chips" id="fiscalChips"></div>
+      </details>
+
+      <details class="grp acc">
+        <summary>Caractéristiques</summary>
+        <div class="lbl">Équipements</div>
+        <div class="chips" id="featureChips">
+          <button type="button" class="chip" data-feature="parking">Parking</button>
+          <button type="button" class="chip" data-feature="balcon">Balcon</button>
+          <button type="button" class="chip" data-feature="terrasse">Terrasse</button>
+          <button type="button" class="chip" data-feature="jardin">Jardin</button>
+          <button type="button" class="chip" data-feature="cave">Cave</button>
+          <button type="button" class="chip" data-feature="ascenseur">Ascenseur</button>
+        </div>
+        <label class="lbl" for="kitchen">Cuisine</label>
+        <select id="kitchen" name="kitchen">
+          <option value="">Indifférent</option>
+          <option value="separee">Séparée / fermée</option>
+          <option value="cloisonnable">Cloisonnable (TMA)</option>
+          <option value="any">Information disponible</option>
+        </select>
+        <div class="two">
+          <div><label class="lbl" for="floor_min">Étage min</label>
+            <input type="number" id="floor_min" name="floor_min" step="1" placeholder="—"></div>
+          <div><label class="lbl" for="floor_max">Étage max</label>
+            <input type="number" id="floor_max" name="floor_max" step="1" placeholder="—"></div>
+        </div>
+        <label class="lbl" for="exposure">Exposition</label>
+        <input type="text" id="exposure" name="exposure" placeholder="S, SO, E…">
+      </details>
+
+      <details class="grp acc">
+        <summary>Qualité de la donnée</summary>
+        <label class="tgl"><input type="checkbox" name="with_exact_address" value="1"><span></span>Adresse exacte connue</label>
+        <label class="tgl"><input type="checkbox" name="with_photos" value="1"><span></span>Avec photos</label>
+        <label class="tgl"><input type="checkbox" name="with_plan" value="1"><span></span>Avec plan public</label>
+        <label class="tgl"><input type="checkbox" name="carrez_only" value="1"><span></span>Surface Carrez uniquement</label>
+        <label class="tgl"><input type="checkbox" name="only_available" value="1"><span></span>Lots disponibles seulement</label>
+        <label class="tgl"><input type="checkbox" name="keep_unknown" value="1"><span></span>Garder les biens sans la donnée filtrée</label>
+        <label class="tgl"><input type="checkbox" name="include_atypical" value="1"><span></span>Inclure les mutations atypiques</label>
+        <p class="hint">Par défaut, un bien qui ne publie pas la donnée filtrée est écarté. Cette option les conserve, signalés par « ? ».</p>
+        <p class="hint">DVF enregistre aussi les ventes en nue-propriété, entre proches ou de parts indivises : leur €/m² n'a rien d'un prix de marché, elles sont donc exclues par défaut.</p>
+      </details>
+
+      <div class="actions">
+        <button type="button" class="btn ghost" id="reset">Réinitialiser</button>
+        <button type="button" class="btn ghost" id="brief">Mon brief T4</button>
+      </div>
+    </form>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn only-mobile" id="toggleFilters" aria-label="Filtres">☰</button>
+      <div class="statline" id="statline"><span class="skel"></span></div>
+      <div class="controls">
+        <label class="sr">Trier</label>
+        <select id="sort">
+          <option value="eur_m2|asc">€/m² croissant</option>
+          <option value="eur_m2|desc">€/m² décroissant</option>
+          <option value="price|asc">Prix croissant</option>
+          <option value="price|desc">Prix décroissant</option>
+          <option value="surface|asc">Surface décroissante</option>
+          <option value="walk|asc">Plus proche d'une gare</option>
+          <option value="delivery|asc">Livraison la plus proche</option>
+          <option value="date|desc">Vente la plus récente</option>
+        </select>
+        <div class="seg small">
+          <input type="radio" name="view" id="vCards" value="cards" checked><label for="vCards">Cartes</label>
+          <input type="radio" name="view" id="vTable" value="table"><label for="vTable">Tableau</label>
+        </div>
+        <button class="btn" id="export">Exporter CSV</button>
+      </div>
+    </header>
+
+    <div class="chipsline" id="activeChips"></div>
+    <div id="banner" class="banner" hidden></div>
+    <section id="results" class="results cards" aria-live="polite"></section>
+    <nav class="pager" id="pager"></nav>
+  </main>
+</div>
+
+<div class="drawer" id="drawer" hidden>
+  <div class="drawer-scrim" data-close></div>
+  <article class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+    <button class="icon-btn close" data-close aria-label="Fermer">✕</button>
+    <div id="drawerBody"></div>
+  </article>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
