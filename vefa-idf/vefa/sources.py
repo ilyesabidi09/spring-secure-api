@@ -110,8 +110,11 @@ class Explorimmoneuf:
         delivery = node.get("delivery") or {}
         prog.delivery_quarter, prog.delivery_year = quarter_from_iso(delivery.get("date"))
 
+        # Only the payload's own field. The page chrome lists every scheme the
+        # site can filter on, so scanning the visible text credited each
+        # programme with all of them.
         laws = node.get("investmentLaws") or []
-        prog.fiscal = detect_fiscal(" ".join(map(str, laws)) + " " + text[:6000])
+        prog.fiscal = detect_fiscal(" ".join(map(str, laws)))
 
         # ``accommodations`` is sometimes one entry per typology and sometimes
         # one entry per lot. Either way, price and surface must be read off the
@@ -229,7 +232,7 @@ class Bouygues:
                 header = text[start: start + 320]
         prog.delivery_quarter, prog.delivery_year = parse_quarter(header)
         prog.typologies = _typologies_from_text(header)
-        prog.fiscal = detect_fiscal(text[:8000])
+        prog.fiscal = detect_fiscal(header)
         prog.notes = (
             "prix = fourchette programme ; lots non collectés "
             "(/ajax/get_program_lots/ interdit par robots.txt)"
@@ -273,9 +276,10 @@ class KaufmanBroad:
         m = re.search(r"[ÀA]\s*partir\s*de\s*([\d\s  ]{5,12})\s*€", text)
         if m:
             prog.price_program_min = clean_number(m.group(1))
-        prog.delivery_quarter, prog.delivery_year = parse_quarter(text)
-        prog.fiscal = detect_fiscal(text[:8000])
-        prog.typologies = _typologies_from_text(text)
+        scope = _scoped(text, prog.postcode or prog.name)
+        prog.delivery_quarter, prog.delivery_year = parse_quarter(scope or text)
+        prog.fiscal = detect_fiscal(scope)
+        prog.typologies = _typologies_from_text(scope) or _typologies_from_text(text)
         prog.plan_url = _public_plan_link(html)
         return [prog] if prog.name else []
 
@@ -437,8 +441,9 @@ class TrouverUnLogementNeuf:
         m = re.search(r"Dispo\s*:\s*([\d,\s etpièces]{1,40})", text)
         if m:
             prog.typologies = _typologies_from_text(m.group(1))
+        scope = _scoped(text, prog.name or prog.postcode)
         prog.delivery_quarter, prog.delivery_year = parse_quarter(text)
-        prog.fiscal = detect_fiscal(text[:8000])
+        prog.fiscal = detect_fiscal(scope)
         return [prog] if prog.name else []
 
 
@@ -489,7 +494,7 @@ class Coteneuf:
         if m:
             prog.price_program_min = clean_number(m.group(1))
         prog.delivery_quarter, prog.delivery_year = parse_quarter(text)
-        prog.fiscal = detect_fiscal(text[:8000])
+        prog.fiscal = detect_fiscal(_scoped(text, prog.name or prog.postcode))
         prog.typologies = _typologies_from_text(text)
 
         # The lot table is grouped per typology: "Appartements neuf T4 … Lot
@@ -616,7 +621,7 @@ class Diagonale:
         if m:
             prog.price_program_min = clean_number(m.group(1))
         prog.delivery_quarter, prog.delivery_year = parse_quarter(text)
-        prog.fiscal = detect_fiscal(text[:8000])
+        prog.fiscal = detect_fiscal(_scoped(text, prog.name or prog.postcode))
         prog.typologies = _typologies_from_text(text)
         prog.notes = "page client-rendered : données partielles"
         return [prog] if prog.name else []
@@ -625,6 +630,22 @@ class Diagonale:
 # Includes Ÿ/Œ/Æ and friends, which fall outside the À-Ü range and would
 # otherwise cut "L'HAŸ-LES-ROSES" in half.
 _UPPER = "A-ZÀ-ÖØ-ÞŸŒÆ"
+
+def _scoped(text: str, anchor: str, before: int = 300, after: int = 900) -> str:
+    """A window of page text around the programme itself.
+
+    Site chrome (nav, filter menus, footer) names every fiscal scheme going,
+    so scanning a whole page credits each programme with all of them. Anchoring
+    on the programme's own name or postcode keeps the detection honest.
+    """
+    if not anchor:
+        return text[:1200]
+    i = text.find(anchor)
+    if i < 0:
+        return text[:1200]
+    return text[max(0, i - before): i + after]
+
+
 _CITY_BOUNDARY = re.compile(rf"([{_UPPER}][{_UPPER}'’\- ]{{2,40}}?)\s*\(\s*(\d{{2}})\s*\)")
 
 

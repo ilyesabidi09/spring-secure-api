@@ -2,12 +2,12 @@
   "sources": {
     "explorimmoneuf": {
       "urls": 1011,
-      "programs": 1011,
+      "programs": 1008,
       "robots_denied": 0
     },
     "bouygues": {
       "urls": 144,
-      "programs": 101,
+      "programs": 102,
       "robots_denied": 0
     },
     "kaufman-broad": {
@@ -17,7 +17,7 @@
     },
     "sogeprom": {
       "urls": 17,
-      "programs": 13,
+      "programs": 209,
       "robots_denied": 0
     },
     "nexity": {
@@ -37,19 +37,19 @@
     },
     "trouver-un-logement-neuf": {
       "urls": 631,
-      "programs": 608,
+      "programs": 610,
       "robots_denied": 0
     },
     "coteneuf": {
-      "urls": 1716,
-      "programs": 1716,
+      "urls": 1229,
+      "programs": 1229,
       "robots_denied": 0
     }
   },
   "http": {
-    "cache": 340,
-    "network": 3930,
+    "cache": 3783,
+    "network": 3,
     "robots_denied": 0,
-    "errors": 26
+    "errors": 23
   }
 }
