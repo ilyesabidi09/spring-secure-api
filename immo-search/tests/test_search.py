@@ -397,3 +397,85 @@ class TestApi(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestVefaIngestIntegration(unittest.TestCase):
+    """End-to-end: the pipeline's CSV shape must survive into a brief query."""
+
+    COLUMNS = [
+        "name", "city", "postcode", "dept", "zone_abc", "developer", "source",
+        "lot_price", "lot_area", "lot_floor", "lot_exposure", "lot_available",
+        "price_program_min", "area_t4_min", "typologies", "delivery", "fiscal",
+        "kitchen_hint", "plan_url", "station_name", "station_line", "walk_m",
+        "walk_min", "address", "lat", "lon", "geocode_precision", "notes", "url",
+    ]
+
+    ROWS = [
+        # Real shapes taken from the pipeline output.
+        dict(name="VOLTIGE", city="Sartrouville", postcode="78500", dept="78",
+             zone_abc="A", source="explorimmoneuf", lot_price="329688",
+             lot_area="79.45", lot_available="oui", typologies="1/2/3/4/5",
+             delivery="T2 2028", fiscal="PTZ/Jeanbrun", station_name="Sartrouville",
+             station_line="A", walk_m="380", walk_min="4.6", lat="48.94", lon="2.19",
+             geocode_precision="source"),
+        dict(name="Jardin Cezanne", city="Corbeil-Essonnes", postcode="91100",
+             dept="91", zone_abc="A", source="explorimmoneuf", lot_price="249683",
+             lot_area="87.6", lot_available="oui", typologies="2/3/4",
+             delivery="T1 2029", fiscal="PTZ", station_name="Corbeil-Essonnes",
+             station_line="D", walk_m="420", walk_min="5.1", lat="48.61", lon="2.48",
+             geocode_precision="street"),
+        dict(name="Sans surface", city="Massy", postcode="91300", dept="91",
+             zone_abc="A", source="bouygues", price_program_min="230000",
+             typologies="1/2/3/4", delivery="T3 2028"),
+    ]
+
+    def setUp(self):
+        import csv as _csv
+        import tempfile
+        from immo.ingest import load_vefa_csv
+
+        self.tmp = Path(tempfile.mkdtemp()) / "vefa.csv"
+        with self.tmp.open("w", newline="", encoding="utf-8-sig") as fh:
+            writer = _csv.DictWriter(fh, fieldnames=self.COLUMNS, extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(self.ROWS)
+        self.listings = load_vefa_csv(self.tmp)
+        self.index = Index(self.listings)
+
+    def test_lot_pair_becomes_price_and_surface(self):
+        voltige = next(l for l in self.listings if l.name == "VOLTIGE")
+        self.assertEqual(voltige.price, 329_688)
+        self.assertAlmostEqual(voltige.surface, 79.45)
+        self.assertTrue(voltige.surface_is_carrez)
+        self.assertEqual(round(voltige.eur_m2), 4150)
+        self.assertEqual(voltige.rooms_choices, [1, 2, 3, 4, 5])
+
+    def test_programme_without_surface_has_no_eur_m2(self):
+        bare = next(l for l in self.listings if l.name == "Sans surface")
+        self.assertIsNone(bare.surface)
+        self.assertIsNone(bare.eur_m2)
+
+    def test_delivery_and_walk_survive_the_csv(self):
+        jardin = next(l for l in self.listings if l.name == "Jardin Cezanne")
+        self.assertEqual(jardin.delivery_key, (2029, 1))
+        self.assertEqual(jardin.walk_m_for(["RER"]), 420)
+
+    def test_the_brief_query(self):
+        """T4 ≥80 m², ≤425 k€, ≤5300 €/m², ≤450 m d'un RER, zone A/Abis, T4-27→29."""
+        brief = {
+            "kind": "neuf", "rooms_min": "4", "rooms_max": "4", "surface_min": "80",
+            "price_max": "425000", "eur_m2_max": "5300", "walk_max_m": "450",
+            "mode": "RER", "zone": "abis,a", "delivery_from": "T4 2027",
+            "delivery_to": "2029",
+        }
+        result = self.index.search(Criteria.from_params(brief), with_facets=False)
+        names = [r["name"] for r in result["results"]]
+        # VOLTIGE misses on surface (79.45), "Sans surface" has none published.
+        self.assertEqual(names, ["Jardin Cezanne"])
+
+    def test_relaxing_surface_admits_the_near_miss(self):
+        brief = {"kind": "neuf", "rooms_min": "4", "surface_min": "79",
+                 "price_max": "425000", "walk_max_m": "450", "mode": "RER"}
+        result = self.index.search(Criteria.from_params(brief), with_facets=False)
+        self.assertEqual({r["name"] for r in result["results"]},
+                         {"VOLTIGE", "Jardin Cezanne"})
