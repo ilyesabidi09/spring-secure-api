@@ -174,6 +174,12 @@ def stage_geo(programs: list[Program], args) -> list[Program]:
         if prog.lat is None:
             continue
 
+        # A 450 m criterion needs a real address. When all we could resolve is
+        # the commune, the point is its centroid and any distance computed from
+        # it would be fiction, so the criterion stays "not verifiable".
+        if prog.geocode_precision not in ("source", "housenumber", "street"):
+            continue
+
         # Only programs that could plausibly qualify get pedestrian routing:
         # if the crow-flies distance already exceeds the walking budget, no
         # foot route can be shorter.
