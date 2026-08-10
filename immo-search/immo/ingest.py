@@ -12,6 +12,8 @@ import gzip
 import io
 import json
 import re
+import ssl
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -25,7 +27,10 @@ from .model import (
     price_plausibility,
 )
 
+from .geo import ssl_context
+
 DVF_BASE = "https://files.data.gouv.fr/geo-dvf/latest/csv"
+DVF_YEARS = (2021, 2022, 2023, 2024, 2025)   # published range; refreshed yearly
 IDF_DEPTS = ["75", "77", "78", "91", "92", "93", "94", "95"]
 HEADERS = {"User-Agent": "immo-search/1.0"}
 
@@ -166,11 +171,18 @@ def _download_dvf(dept: str, year: int, cache_dir: Path) -> Path | None:
     url = f"{DVF_BASE}/{year}/departements/{dept}.csv.gz"
     try:
         req = urllib.request.Request(url, headers=HEADERS)
-        with urllib.request.urlopen(req, timeout=180) as resp:
+        with urllib.request.urlopen(req, timeout=180, context=ssl_context()) as resp:
             data = resp.read()
         target.write_bytes(data)
         return target
-    except Exception:
+    except urllib.error.URLError as exc:
+        if isinstance(getattr(exc, "reason", None), ssl.SSLCertVerificationError):
+            from .geo import CERT_HELP
+            raise RuntimeError(f"{url}\n{CERT_HELP}") from exc
+        print(f"    ! {dept}/{year} indisponible ({exc.reason})")
+        return None
+    except Exception as exc:
+        print(f"    ! {dept}/{year} indisponible ({exc})")
         return None
 
 
@@ -201,6 +213,17 @@ def fetch_dvf(
     """
     depts = depts or IDF_DEPTS
     years = years or [2024]
+    unknown = [y for y in years if y not in DVF_YEARS]
+    if unknown:
+        # Asking for a year DVF has not published yet used to download nothing
+        # and say nothing, which reads as "there were no sales".
+        print(
+            f"    ! années sans données DVF : {unknown} — publiées : "
+            f"{DVF_YEARS[0]}–{DVF_YEARS[-1]}"
+        )
+        years = [y for y in years if y in DVF_YEARS]
+        if not years:
+            return []
     out: list[Listing] = []
 
     for year in years:

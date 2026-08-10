@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import json
 import math
+import ssl
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -32,11 +34,45 @@ MODE_MAP = {
 }
 
 
+def ssl_context() -> ssl.SSLContext:
+    """Verified TLS, preferring certifi's roots when they are installed.
+
+    Some of these public hosts serve a chain containing an expired cross-signed
+    root. Trust stores that only know the old path reject it — Windows' store
+    does, which is why one host fails while another on the same machine works.
+    certifi carries the modern roots and resolves it. Verification stays on
+    either way: an expired chain is exactly the thing you want TLS to catch.
+    """
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        return ssl.create_default_context()
+
+
+CERT_HELP = (
+    "\nÉchec de vérification TLS. Le certificat de cet hôte n'est pas validé par\n"
+    "le magasin de certificats de votre système. Correctif :\n"
+    "    py -m pip install certifi        (Windows)\n"
+    "    python3 -m pip install certifi   (macOS / Linux)\n"
+    "puis relancer. Ne désactivez pas la vérification TLS.\n"
+)
+
+
+def _open(req, timeout: int):
+    try:
+        return urllib.request.urlopen(req, timeout=timeout, context=ssl_context())
+    except urllib.error.URLError as exc:
+        if isinstance(getattr(exc, "reason", None), ssl.SSLCertVerificationError):
+            raise RuntimeError(f"{req.full_url}\n{CERT_HELP}") from exc
+        raise
+
+
 def _get_json(url: str, params: dict | None = None, timeout: int = 60):
     if params:
         url = f"{url}?{urllib.parse.urlencode(params)}"
     req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with _open(req, timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 
@@ -45,7 +81,7 @@ def _post_json(url: str, payload: dict, timeout: int = 60):
     req = urllib.request.Request(
         url, data=data, headers={**HEADERS, "Content-Type": "application/json"}
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with _open(req, timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 
@@ -58,11 +94,28 @@ def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * radius * math.asin(math.sqrt(a))
 
 
+REFDATA = Path(__file__).resolve().parent.parent / "refdata"
+
+
+def _seed(cache: Path, name: str):
+    """Copy of a reference dataset shipped with the repo, if we have one."""
+    seed = REFDATA / name
+    if seed.exists():
+        payload = json.loads(seed.read_text(encoding="utf-8"))
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        return payload
+    return None
+
+
 def load_stations(cache: Path) -> list[dict]:
     """Every rail station in Île-de-France, one row per stop, modes merged."""
     cache = Path(cache)
     if cache.exists():
         return json.loads(cache.read_text(encoding="utf-8"))
+    seeded = _seed(cache, "stations.json")
+    if seeded is not None:
+        return seeded
 
     raw: list[dict] = []
     offset = 0
@@ -118,6 +171,9 @@ def load_zoning(cache: Path) -> dict[str, dict]:
     cache = Path(cache)
     if cache.exists():
         return json.loads(cache.read_text(encoding="utf-8"))
+    seeded = _seed(cache, "zoning.json")
+    if seeded is not None:
+        return seeded
     out: dict[str, dict] = {}
     offset, zone_field = 0, None
     while True:
