@@ -18,6 +18,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# Windows consoles still default to cp1252 on many machines, and this tool
+# prints "€", "→" and "✓". Force UTF-8 on the streams rather than let a
+# UnicodeEncodeError kill a run that otherwise worked.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+
 from immo.criteria import Criteria, CriteriaError
 from immo.engine import Index
 from immo.server import serve
